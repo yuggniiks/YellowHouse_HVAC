@@ -1292,21 +1292,23 @@
              if (!canvas) return;
             
              const ctx = canvas.getContext('2d');
+             const chartContainer = canvas.parentElement;
+
+             // Handle high-DPI displays for crisp rendering
              if (window.devicePixelRatio > 1) {
-                 const canvasRect = canvas.getBoundingClientRect();
+                 const canvasRect = chartContainer.getBoundingClientRect();
                  canvas.width = canvasRect.width * window.devicePixelRatio;
                  canvas.height = canvasRect.height * window.devicePixelRatio;
                  ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
                  canvas.style.width = canvasRect.width + 'px';
                  canvas.style.height = canvasRect.height + 'px';
              } else {
-                 const canvasRect = canvas.getBoundingClientRect();
+                 const canvasRect = chartContainer.getBoundingClientRect();
                  canvas.width = canvasRect.width;
                  canvas.height = canvasRect.height;
              }
             
              ctx.clearRect(0, 0, canvas.width, canvas.height);
-             const chartContainer = canvas.parentElement;
             
              if (heatPumpResults.length === 0) {
                  ctx.fillStyle = '#666';
@@ -1339,8 +1341,6 @@
                      if (option.type === 'HP' && year > 0 && year % heatPumpLifespan === 0) {
                          replacementCost = option.cost * Math.pow(1 + inflationRate, year);
                      } else if ((option.type === 'HYBRID' || option.type === 'GEO') && year > 0 && year % geothermalLifespan === 0) {
-                         // *** THIS IS THE KEY CHANGE ***
-                         // Use the new fixed replacement cost from the input field
                          const futureReplacementCost = getVal('geoReplacementCost');
                          replacementCost = futureReplacementCost * Math.pow(1 + inflationRate, year);
                      }
@@ -1366,26 +1366,26 @@
              const maxCost = Math.max(...projectionData.flatMap(p => p.data.map(d => d.cost)));
              const maxYear = years;
             
-             const margin = { top: 40, right: 20, bottom: 80, left: 60 };
+             const margin = { top: 40, right: 30, bottom: 80, left: 70 };
              const chartWidth = chartContainer.clientWidth - margin.left - margin.right;
              const chartHeight = chartContainer.clientHeight - margin.top - margin.bottom;
             
              const xScale = (year) => margin.left + (year / maxYear) * chartWidth;
              const yScale = (cost) => margin.top + chartHeight - (cost / maxCost) * chartHeight;
             
+             // --- Draw Gridlines ---
              ctx.strokeStyle = '#e0e0e0';
              ctx.lineWidth = 0.5;
+             const costStep = Math.ceil(maxCost / 8 / 10000) * 10000;
 
              for (let year = 0; year <= maxYear; year += 5) {
                  const x = xScale(year);
                  ctx.beginPath();
                  ctx.moveTo(x, margin.top);
                  ctx.lineTo(x, margin.top + chartHeight);
-                 ctx.strokeStyle = (year % 10 === 0) ? '#d0d0d0' : '#e0e0e0';
+                 ctx.strokeStyle = (year > 0 && year % 10 === 0) ? '#d0d0d0' : '#e0e0e0';
                  ctx.stroke();
              }
-            
-             const costStep = Math.ceil(maxCost / 8 / 10000) * 10000;
              for (let cost = 0; cost <= maxCost; cost += costStep) {
                  if(cost === 0) continue;
                  const y = yScale(cost);
@@ -1395,14 +1395,13 @@
                  ctx.stroke();
              }
             
+             // --- Draw Axes ---
              ctx.strokeStyle = '#333';
              ctx.lineWidth = 1;
-            
              ctx.beginPath();
              ctx.moveTo(margin.left, margin.top + chartHeight);
              ctx.lineTo(margin.left + chartWidth, margin.top + chartHeight);
              ctx.stroke();
-            
              ctx.beginPath();
              ctx.moveTo(margin.left, margin.top);
              ctx.lineTo(margin.left, margin.top + chartHeight);
@@ -1419,6 +1418,7 @@
                  }
              }
 
+             // --- Draw Data Lines & Markers ---
              const markerTypes = ['circle', 'square', 'diamond'];
              projectionData.forEach((option, index) => {
                  const markerType = markerTypes[index % markerTypes.length];
@@ -1439,44 +1439,44 @@
                  });
                  ctx.stroke();
                  ctx.setLineDash([]);
-                
+
+                 // *** THIS BLOCK WAS MISSING AND HAS BEEN ADDED BACK ***
+                 // This loop draws the markers on the chart lines.
                  option.data.forEach((point) => {
                      if (point.year > 0 && point.year % 5 === 0) {
-                         drawMarker(ctx, xScale(point.year), yScale(point.cost), markerType, option.color);
+                         // We only draw markers every 5 years to keep the chart clean
+                         drawMarker(ctx, xScale(point.year), yScale(point.cost), markerType, option.color, 3.5);
                      }
                  });
              });
             
+             // --- Draw Labels and Titles ---
              ctx.fillStyle = '#333';
              ctx.font = '11px Segoe UI';
              ctx.textAlign = 'center';
              for (let year = 0; year <= maxYear; year += 5) {
                  ctx.font = (year % 10 === 0) ? 'bold 11px Segoe UI' : '11px Segoe UI';
-                 ctx.fillText(year.toString(), xScale(year), margin.top + chartHeight + 15);
+                 ctx.fillText(year.toString(), xScale(year), margin.top + chartHeight + 20);
              }
-            
              ctx.textAlign = 'right';
              for (let cost = 0; cost <= maxCost; cost += costStep) {
                  if (cost > 0) ctx.fillText('$' + Math.round(cost / 1000) + 'k', margin.left - 8, yScale(cost) + 4);
              }
-            
              ctx.font = '12px Segoe UI';
              ctx.textAlign = 'center';
-             ctx.fillText('Years', margin.left + chartWidth/2, chartContainer.clientHeight - 25);
-            
+             ctx.fillText('Years', margin.left + chartWidth / 2, chartContainer.clientHeight - 45);
              ctx.save();
-             ctx.translate(15, margin.top + chartHeight/2);
-             ctx.rotate(-Math.PI/2);
+             ctx.translate(30, margin.top + chartHeight / 2);
+             ctx.rotate(-Math.PI / 2);
              ctx.fillText('Cumulative Total Cost', 0, 0);
              ctx.restore();
-            
              ctx.font = 'bold 14px Segoe UI';
              ctx.textAlign = 'center';
-             ctx.fillText('30-Year Total Cost Projection (Including Replacements & Inflation)', margin.left + chartWidth/2, 20);
+             ctx.fillText('30-Year Total Cost Projection (Including Replacements & Inflation)', margin.left + chartWidth / 2, 25);
                                     
-             const legendY_start = chartContainer.clientHeight - 15;
+             // --- Draw Legend ---
              let legendX = margin.left;
-             let legendY = legendY_start;
+             let legendY = chartContainer.clientHeight - 20;
 
              projectionData.forEach((option, index) => {
                  const markerType = markerTypes[index % markerTypes.length];
@@ -1494,7 +1494,7 @@
                  ctx.stroke();
                  ctx.setLineDash([]);
                 
-                 drawMarker(ctx, legendX + 12.5, legendY, markerType, option.color);
+                 drawMarker(ctx, legendX + 12.5, legendY, markerType, option.color, 3);
                 
                  ctx.fillStyle = '#333';
                  ctx.font = '11px Segoe UI';
@@ -1510,7 +1510,7 @@
                  }
              });
         }
-        
+
         function showStatus(message, isError = false) {
             const statusEl = document.getElementById('fileStatus');
             const errorEl = document.getElementById('fileError');
