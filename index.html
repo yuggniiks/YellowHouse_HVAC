@@ -361,6 +361,59 @@
             display: none;
         }
 
+        .calc-section {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 15px;
+        }
+
+        .calc-section h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 1.1em;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+
+        .calc-details {
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            border-left: 3px solid #3498db;
+        }
+
+        .calc-step {
+            margin: 8px 0;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .calc-step:last-child {
+            border-bottom: none;
+        }
+
+        .calc-highlight {
+            background: #fff3cd;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+
+        .calc-formula {
+            color: #6f42c1;
+            font-weight: bold;
+        }
+
+        .calc-result {
+            color: #28a745;
+            font-weight: bold;
+        }
+
         @media (max-width: 1200px) {
             .two-column {
                 grid-template-columns: 1fr;
@@ -409,6 +462,41 @@
                 </div>
                     <div id="fileStatus" class="file-status"></div>
                     <div id="fileError" class="file-error"></div>
+                </div>
+            </div>
+
+            <!-- Math & Calculations Section -->
+            <div class="section" id="calculationsSection">
+                <h2>🧮 Detailed Calculations & Math</h2>
+                <div style="background: #f0f8ff; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+                    <strong>Real-time calculations:</strong> All math updates automatically when you change any input values.
+                </div>
+                
+                <div class="two-column">
+                    <div class="calc-section">
+                        <h3>Current System Analysis</h3>
+                        <div id="currentSystemCalc" class="calc-details"></div>
+                    </div>
+                    <div class="calc-section">
+                        <h3>Energy Cost Calculations</h3>
+                        <div id="energyCalc" class="calc-details"></div>
+                    </div>
+                </div>
+                
+                <div class="two-column">
+                    <div class="calc-section">
+                        <h3>Heat Pump Calculations</h3>
+                        <div id="heatPumpCalc" class="calc-details"></div>
+                    </div>
+                    <div class="calc-section">
+                        <h3>Geothermal Calculations</h3>
+                        <div id="geothermalCalc" class="calc-details"></div>
+                    </div>
+                </div>
+                
+                <div class="calc-section">
+                    <h3>NPV & Financial Analysis</h3>
+                    <div id="npvCalc" class="calc-details"></div>
                 </div>
             </div>
 
@@ -830,6 +918,10 @@
             const discountRate = getVal('discountRate') / 100;
             const inflationRate = getVal('inflationRate') / 100;
             const currentTotalCost = getVal('currentAnnualCost') + getVal('brokenSystemPenalty');
+            const electricityRate = getVal('electricityRate');
+            
+            // Update calculations display
+            updateCalculationsDisplay();
             
             const baselineBody = document.getElementById('baselineBody');
             const upgradeBody = document.getElementById('upgradeBody');
@@ -852,7 +944,7 @@
             const heatPumpOptions = getHeatPumpOptions();
             
             heatPumpOptions.forEach(option => {
-                if (option.cost > 0 && option.name.trim()) { // Only include valid options
+                if (option.cost > 0 && option.name.trim()) {
                     const newEnergyCost = calculateNewEnergyCost(option.seer, option.hspf, option.type);
                     const totalNewAnnualCost = newEnergyCost + option.maintenance;
                     const annualSavings = currentTotalCost - totalNewAnnualCost;
@@ -873,7 +965,7 @@
                 }
             });
             
-            // Find best heat pump option (lowest total cost)
+            // Find best heat pump option
             if (heatPumpResults.length === 0) {
                 debugText += `<br><strong>No valid heat pump options found</strong><br><br>`;
                 debugOutput.innerHTML = debugText;
@@ -887,18 +979,17 @@
             
             debugText += `<br><strong>Best Heat Pump Baseline:</strong> ${bestHeatPump.name} with ${bestHeatPump.totalAnnualCost.toFixed(0)} annual cost<br><br>`;
             
-            // Calculate geothermal options vs best heat pump
+            // Calculate geothermal options
             debugText += `<strong>=== GEOTHERMAL UPGRADE ANALYSIS ===</strong><br>`;
             const geothermalOptions = getGeothermalOptions();
             
             geothermalOptions.forEach(option => {
-                if (option.cost > 0 && option.name.trim()) { // Only include valid options
+                if (option.cost > 0 && option.name.trim()) {
                     const taxCredit = option.cost * taxCreditRate;
                     const netCost = option.cost - taxCredit;
                     const newEnergyCost = calculateNewEnergyCost(option.seer, option.hspf, option.type);
                     const totalNewAnnualCost = newEnergyCost + option.maintenance;
                     
-                    // Calculate incremental values vs best heat pump
                     const extraInvestment = option.cost - bestHeatPump.cost;
                     const netExtraInvestment = netCost - bestHeatPump.cost;
                     const extraAnnualSavings = bestHeatPump.totalAnnualCost - totalNewAnnualCost;
@@ -907,7 +998,7 @@
                     debugText += `${option.name}: Extra cost ${extraInvestment.toLocaleString()} (net: ${netExtraInvestment.toLocaleString()}), `;
                     debugText += `Extra savings ${extraAnnualSavings.toFixed(0)}/yr, Payback ${simplePayback.toFixed(1)} years<br>`;
                     
-                    // Calculate incremental NPV
+                    // Calculate NPV
                     let cumulativeNPV = -netExtraInvestment;
                     const npvAtIntervals = {};
                     
@@ -1023,6 +1114,158 @@
             
             // Generate 50-year cost projection chart
             generateCostProjectionChart(heatPumpResults, geothermalResults);
+        }
+
+        function updateCalculationsDisplay() {
+            const currentAnnualCost = getVal('currentAnnualCost');
+            const brokenSystemPenalty = getVal('brokenSystemPenalty');
+            const currentTotalCost = currentAnnualCost + brokenSystemPenalty;
+            const electricityRate = getVal('electricityRate');
+            const inflationRate = getVal('inflationRate') / 100;
+            const discountRate = getVal('discountRate') / 100;
+            const taxCredit = getVal('taxCredit') / 100;
+            const currentSEER = getVal('currentSEER');
+            const currentHSPF = getVal('currentHSPF');
+            
+            // Current System Analysis
+            document.getElementById('currentSystemCalc').innerHTML = `
+                <div class="calc-step">
+                    <strong>Current Energy Cost:</strong><br>
+                    Base annual cost = <span class="calc-highlight">$${currentAnnualCost.toLocaleString()}</span><br>
+                    Broken system penalty = <span class="calc-highlight">$${brokenSystemPenalty.toLocaleString()}</span><br>
+                    <span class="calc-formula">Total = $${currentAnnualCost.toLocaleString()} + $${brokenSystemPenalty.toLocaleString()}</span><br>
+                    <span class="calc-result">= $${currentTotalCost.toLocaleString()}/year</span>
+                </div>
+                <div class="calc-step">
+                    <strong>Current System Efficiency:</strong><br>
+                    Mixed system SEER: <span class="calc-highlight">${currentSEER}</span><br>
+                    Mixed system HSPF: <span class="calc-highlight">${currentHSPF}</span><br>
+                    <small>Average of working downstairs + broken upstairs units</small>
+                </div>
+            `;
+            
+            // Energy Cost Calculations
+            document.getElementById('energyCalc').innerHTML = `
+                <div class="calc-step">
+                    <strong>Energy Cost Formula:</strong><br>
+                    <span class="calc-formula">New Cost = Current Cost × (Current Efficiency / New Efficiency)</span><br>
+                    Electricity rate: <span class="calc-highlight">$${electricityRate}/kWh</span><br>
+                    Inflation rate: <span class="calc-highlight">${(inflationRate * 100).toFixed(1)}%</span> per year
+                </div>
+                <div class="calc-step">
+                    <strong>Efficiency Calculation:</strong><br>
+                    SEER improvement ratio = <span class="calc-formula">New SEER / Current SEER</span><br>
+                    HSPF improvement ratio = <span class="calc-formula">New HSPF / Current HSPF</span><br>
+                    <span class="calc-formula">Overall = (60% × SEER ratio) + (40% × HSPF ratio)</span><br>
+                    <small>60% cooling, 40% heating for Central PA climate</small>
+                </div>
+            `;
+            
+            // Heat Pump Calculations
+            let hpCalcHTML = `
+                <div class="calc-step">
+                    <strong>Heat Pump System Logic:</strong><br>
+                    Replace broken upstairs unit only<br>
+                    Keep good 2022 downstairs unit<br>
+                    <span class="calc-formula">Mixed System Efficiency = (65% × New) + (35% × 2022)</span><br>
+                    <small>65% upstairs load, 35% downstairs load</small>
+                </div>
+                <div class="calc-step">
+                    <strong>Weather Penalties:</strong><br>
+                    Emergency heat days: <span class="calc-highlight">${getVal('emergencyHeatDays')}</span><br>
+                    Cost per emergency day: <span class="calc-highlight">$${getVal('emergencyHeatCost')}</span><br>
+                    <span class="calc-formula">Winter penalty = ${getVal('emergencyHeatDays')} × $${getVal('emergencyHeatCost')} = $${(getVal('emergencyHeatDays') * getVal('emergencyHeatCost')).toLocaleString()}</span><br>
+                    Hot day efficiency loss: <span class="calc-highlight">${getVal('hotDayPenalty')}%</span> on ${getVal('hotDaysPerYear')} days<br>
+                    <span class="calc-result">Total weather penalty: $${((getVal('emergencyHeatDays') * getVal('emergencyHeatCost')) + (currentAnnualCost * 0.6 * getVal('hotDayPenalty')/100 * getVal('hotDaysPerYear')/120)).toFixed(0)}</span>
+                </div>
+            `;
+            
+            // Add specific heat pump calculations if any exist
+            const heatPumpOptions = getHeatPumpOptions();
+            if (heatPumpOptions.length > 0) {
+                const firstHP = heatPumpOptions[0];
+                if (firstHP.cost > 0) {
+                    const downstairsSEER = 14.5;
+                    const downstairsHSPF = 8.35;
+                    const mixedSEER = (0.65 * firstHP.seer) + (0.35 * downstairsSEER);
+                    const mixedHSPF = (0.65 * firstHP.hspf) + (0.35 * downstairsHSPF);
+                    
+                    hpCalcHTML += `
+                        <div class="calc-step">
+                            <strong>Example: ${firstHP.name}</strong><br>
+                            Mixed SEER = (65% × ${firstHP.seer}) + (35% × ${downstairsSEER}) = <span class="calc-result">${mixedSEER.toFixed(1)}</span><br>
+                            Mixed HSPF = (65% × ${firstHP.hspf}) + (35% × ${downstairsHSPF}) = <span class="calc-result">${mixedHSPF.toFixed(1)}</span><br>
+                            New energy cost = <span class="calc-result">$${calculateNewEnergyCost(firstHP.seer, firstHP.hspf, 'HP').toFixed(0)}</span><br>
+                            Annual maintenance = <span class="calc-highlight">$300</span>
+                        </div>
+                    `;
+                }
+            }
+            
+            document.getElementById('heatPumpCalc').innerHTML = hpCalcHTML;
+            
+            // Geothermal Calculations
+            let geoCalcHTML = `
+                <div class="calc-step">
+                    <strong>Geothermal System Logic:</strong><br>
+                    Full system replacement<br>
+                    No weather penalties (ground source)<br>
+                    <span class="calc-formula">Direct efficiency = New SEER/HSPF ratings</span><br>
+                    Lower maintenance costs
+                </div>
+                <div class="calc-step">
+                    <strong>Tax Credit Calculation:</strong><br>
+                    Federal tax credit: <span class="calc-highlight">${(taxCredit * 100).toFixed(0)}%</span><br>
+                    <span class="calc-formula">Credit = Installation Cost × ${(taxCredit * 100).toFixed(0)}%</span><br>
+                    <span class="calc-formula">Net Cost = Installation Cost - Tax Credit</span>
+                </div>
+            `;
+            
+            // Add specific geothermal calculations if any exist
+            const geothermalOptions = getGeothermalOptions();
+            if (geothermalOptions.length > 0) {
+                const firstGeo = geothermalOptions[0];
+                if (firstGeo.cost > 0) {
+                    const geoTaxCredit = firstGeo.cost * taxCredit;
+                    const geoNetCost = firstGeo.cost - geoTaxCredit;
+                    
+                    geoCalcHTML += `
+                        <div class="calc-step">
+                            <strong>Example: ${firstGeo.name}</strong><br>
+                            Installation cost = <span class="calc-highlight">$${firstGeo.cost.toLocaleString()}</span><br>
+                            Tax credit = $${firstGeo.cost.toLocaleString()} × ${(taxCredit * 100).toFixed(0)}% = <span class="calc-result">$${geoTaxCredit.toLocaleString()}</span><br>
+                            Net cost = $${firstGeo.cost.toLocaleString()} - $${geoTaxCredit.toLocaleString()} = <span class="calc-result">$${geoNetCost.toLocaleString()}</span><br>
+                            New energy cost = <span class="calc-result">$${calculateNewEnergyCost(firstGeo.seer, firstGeo.hspf, 'GEO').toFixed(0)}</span><br>
+                            Annual maintenance = <span class="calc-highlight">$150</span>
+                        </div>
+                    `;
+                }
+            }
+            
+            document.getElementById('geothermalCalc').innerHTML = geoCalcHTML;
+            
+            // NPV Calculations
+            document.getElementById('npvCalc').innerHTML = `
+                <div class="calc-step">
+                    <strong>NPV Formula:</strong><br>
+                    <span class="calc-formula">NPV = -Initial Investment + Σ(Annual Savings ÷ (1 + Discount Rate)^year)</span><br>
+                    Discount rate: <span class="calc-highlight">${(discountRate * 100).toFixed(1)}%</span><br>
+                    <small>Accounts for time value of money</small>
+                </div>
+                <div class="calc-step">
+                    <strong>Inflation Adjustment:</strong><br>
+                    <span class="calc-formula">Inflated Savings = Base Savings × (1 + Inflation Rate)^(year-1)</span><br>
+                    Energy costs increase by <span class="calc-highlight">${(inflationRate * 100).toFixed(1)}%</span> annually<br>
+                    <small>Savings grow over time due to rising energy costs</small>
+                </div>
+                <div class="calc-step">
+                    <strong>Incremental Analysis:</strong><br>
+                    Compares geothermal vs. best heat pump option<br>
+                    <span class="calc-formula">Extra Investment = Geothermal Cost - Best HP Cost</span><br>
+                    <span class="calc-formula">Extra Savings = Best HP Annual Cost - Geothermal Annual Cost</span><br>
+                    <span class="calc-result">Positive NPV = Geothermal upgrade pays off</span>
+                </div>
+            `;
         }
         
         function generateCostProjectionChart(heatPumpResults, geothermalResults) {
