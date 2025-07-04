@@ -772,9 +772,13 @@ function loadExampleData() {
     const exampleData = `Type,Name,Cost,Rating1,Rating2
 HeatPump,Heat Pump Haller,15401,14.5,7.8
 HeatPump,Heat Pump Grainger,9500,15.2,8.5
-Hybrid,Hybrid Geothermal,42000,21.0,4.6
-Geothermal,Full Geo Haller,60000,24.0,5.1
-Geothermal,Full Geo Morrison,51952,22.0,4.8`;
+HeatPump,Heat Pump Haller, 20000,20,10
+
+Hybrid,Hybrid Geo-Haller,37500,21.0,4.6
+Hybrid,Hybrid Geo-Morrison, 34882,21,4.6
+
+Geothermal,Full Geo Haller,60000,22.0,5
+Geothermal,Full Geo Morrison,51952,22.0,5`;
     
     try {
         parseVendorData(exampleData);
