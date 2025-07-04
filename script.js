@@ -527,7 +527,11 @@ function createInteractiveLegend(projectionData, chartUpdater) {
         checkbox.type = 'checkbox';
         checkbox.id = `toggle-${option.uniqueId}`;
         checkbox.value = option.name;
-        checkbox.checked = true;
+        const defaultOnOptions = [
+            "Full Geo Morrison",
+            "Heat Pump Haller-Theorhetical"
+        ];
+        checkbox.checked = defaultOnOptions.includes(option.name);
         checkbox.style.accentColor = option.color;
 
         const label = document.createElement('label');
@@ -808,9 +812,9 @@ Geothermal,My Full Geothermal Quote,50000,22,5.0`;
 
 function loadExampleData() {
     const exampleData = `Type,Name,Cost,Rating1,Rating2
-HeatPump,Heat Pump Haller,15401,14.5,7.8
+HeatPump,Heat Pump Haller-1,15401,14.5,7.8
 HeatPump,Heat Pump Grainger,9500,15.2,8.5
-HeatPump,Heat Pump Haller, 20000,20,10
+HeatPump,Heat Pump Haller-Theorhetical, 20000,20,10
 
 Hybrid,Hybrid Geo-Haller,37500,21.0,4.6
 Hybrid,Hybrid Geo-Morrison, 34882,21,4.6
@@ -958,7 +962,7 @@ function exportData() {
 
 window.onload = function() {
     setTimeout(() => {
-        initializeVendors();
-        calculateAll();
+        loadExampleData(); // This loads the data and initializes the vendors
+        calculateAll();      // This now runs with the data loaded
     }, 200);
 };
