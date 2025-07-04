@@ -19,13 +19,11 @@ function toggleDebug() {
     debugSection.style.display = debugSection.style.display === 'none' ? 'block' : 'none';
 }
 
-// *** MODIFIED FUNCTION ***
-// Now creates different inputs for Heat Pump vs Geothermal/Hybrid
 function createVendorHTML(type, id, name, cost, rating1, rating2) {
-    const isRemovable = (type === 'hp' && heatPumpCounter > 1) || 
-                        (type === 'hybrid' && hybridCounter > 1) || 
+    const isRemovable = (type === 'hp' && heatPumpCounter > 1) ||
+                        (type === 'hybrid' && hybridCounter > 1) ||
                         (type === 'geo' && geothermalCounter > 1);
-    
+
     let typeLabel, typeColor, rating1Label, rating2Label, rating1Id, rating2Id, rating1Help, rating2Help;
 
     switch(type) {
@@ -60,9 +58,9 @@ function createVendorHTML(type, id, name, cost, rating1, rating2) {
             rating2Help = 'Geo Heating (COP)';
             break;
     }
-    
+
     const removeButton = isRemovable ? `<button class="remove-vendor" onclick="removeVendor('${type}', ${id})" title="Remove this vendor">✗</button>` : '';
-    
+
     return `
         <div class="vendor-option" id="${type}Vendor${id}">
             ${removeButton}
@@ -105,7 +103,6 @@ function addHeatPumpVendor() {
 function addHybridVendor() {
     hybridCounter++;
     const container = document.getElementById('hybridVendors');
-    // Using EER/COP values now
     const vendorHTML = createVendorHTML('hybrid', hybridCounter, `Hybrid Option ${hybridCounter}`, 35000, 20, 4.5);
     container.insertAdjacentHTML('beforeend', vendorHTML);
     calculateAll();
@@ -114,7 +111,6 @@ function addHybridVendor() {
 function addGeothermalVendor() {
     geothermalCounter++;
     const container = document.getElementById('geothermalVendors');
-    // Using EER/COP values now
     const vendorHTML = createVendorHTML('geo', geothermalCounter, `Full Geothermal Option ${geothermalCounter}`, 50000, 22, 5.0);
     container.insertAdjacentHTML('beforeend', vendorHTML);
     calculateAll();
@@ -132,21 +128,19 @@ function initializeVendors() {
     const heatPumpContainer = document.getElementById('heatPumpVendors');
     const hybridContainer = document.getElementById('hybridVendors');
     const geothermalContainer = document.getElementById('geothermalVendors');
-    
+
     heatPumpContainer.innerHTML = '';
     hybridContainer.innerHTML = '';
     geothermalContainer.innerHTML = '';
-    
+
     heatPumpCounter = 0;
     hybridCounter = 0;
     geothermalCounter = 0;
 }
 
-// *** MODIFIED FUNCTION ***
-// This function remains the same, but the getters below will now feed it the correct values.
 function getHeatPumpOptions() {
     const options = [];
-    const hpMaintenance = getVal('hpMaintenance'); // Get value from new input
+    const hpMaintenance = getVal('hpMaintenance');
     for (let i = 1; i <= heatPumpCounter; i++) {
         const element = document.getElementById(`hpVendor${i}`);
         if (element) {
@@ -156,7 +150,7 @@ function getHeatPumpOptions() {
                 cost: getVal(`hpCost${i}`),
                 seer: getVal(`hpSEER${i}`),
                 hspf: getVal(`hpHSPF${i}`),
-                maintenance: hpMaintenance, // Use the new input value
+                maintenance: hpMaintenance,
                 type: 'HP'
             });
         }
@@ -164,11 +158,8 @@ function getHeatPumpOptions() {
     return options;
 }
 
-// *** MODIFIED FUNCTION ***
-// Reads EER/COP and converts them to equivalent SEER/HSPF
 function getHybridOptions() {
     const options = [];
-    // For hybrid, let's average the HP and Geo maintenance costs
     const hybridMaintenance = (getVal('hpMaintenance') + getVal('geoMaintenance')) / 2;
     for (let i = 1; i <= hybridCounter; i++) {
         const element = document.getElementById(`hybridVendor${i}`);
@@ -177,7 +168,7 @@ function getHybridOptions() {
             const cop = getVal(`hybridCOP${i}`);
             const equivalentSEER = eer * 1.15;
             const equivalentHSPF = cop * 2.7;
-            
+
             options.push({
                 id: i,
                 name: getText(`hybridName${i}`),
@@ -186,7 +177,7 @@ function getHybridOptions() {
                 hspf: equivalentHSPF,
                 eer: eer,
                 cop: cop,
-                maintenance: hybridMaintenance, // Use calculated hybrid maintenance
+                maintenance: hybridMaintenance,
                 type: 'HYBRID'
             });
         }
@@ -196,7 +187,7 @@ function getHybridOptions() {
 
 function getGeothermalOptions() {
     const options = [];
-    const geoMaintenance = getVal('geoMaintenance'); // Get value from new input
+    const geoMaintenance = getVal('geoMaintenance');
     for (let i = 1; i <= geothermalCounter; i++) {
         const element = document.getElementById(`geoVendor${i}`);
         if (element) {
@@ -211,9 +202,9 @@ function getGeothermalOptions() {
                 cost: getVal(`geoCost${i}`),
                 seer: equivalentSEER,
                 hspf: equivalentHSPF,
-                eer: eer, 
-                cop: cop, 
-                maintenance: geoMaintenance, // Use the new input value
+                eer: eer,
+                cop: cop,
+                maintenance: geoMaintenance,
                 type: 'GEO'
             });
         }
@@ -226,49 +217,45 @@ function calculateNewEnergyCost(newSEER, newHSPF, type) {
     const currentEnergyCost = getVal('currentAnnualCost');
     const currentSEER = getVal('currentSEER');
     const currentHSPF = getVal('currentHSPF');
-    
+
     let effectiveSEER, effectiveHSPF;
-    
+
     if (type === 'HP') {
-        const downstairsSEER = 14.5; // 2022 unit
-        const downstairsHSPF = 8.35; // 2022 unit
+        const downstairsSEER = 14.5;
+        const downstairsHSPF = 8.35;
         effectiveSEER = (0.65 * newSEER) + (0.35 * downstairsSEER);
         effectiveHSPF = (0.65 * newHSPF) + (0.35 * downstairsHSPF);
     } else if (type === 'HYBRID') {
-        const downstairsSEER = 14.5; // 2022 unit (still air-to-air)
-        const downstairsHSPF = 8.35; // 2022 unit (still air-to-air)
+        const downstairsSEER = 14.5;
+        const downstairsHSPF = 8.35;
         effectiveSEER = (0.65 * newSEER) + (0.35 * downstairsSEER);
         effectiveHSPF = (0.65 * newHSPF) + (0.35 * downstairsHSPF);
     } else {
-        // Full geothermal - complete system replacement
         effectiveSEER = newSEER;
         effectiveHSPF = newHSPF;
     }
-    
+
     const seerImprovement = (currentSEER > 0) ? effectiveSEER / currentSEER : 1;
     const hspfImprovement = (currentHSPF > 0) ? effectiveHSPF / currentHSPF : 1;
-    
+
     const overallEfficiencyFactor = (0.6 * seerImprovement) + (0.4 * hspfImprovement);
-    
+
     let newEnergyCost = (overallEfficiencyFactor > 0) ? currentEnergyCost / overallEfficiencyFactor : currentEnergyCost;
-    
-    // Add weather penalties for heat pumps only (hybrid gets partial penalty)
+
     if (type === 'HP' || type === 'HYBRID') {
         const emergencyHeatDays = getVal('emergencyHeatDays');
         const emergencyHeatCost = getVal('emergencyHeatCost');
         const hotDayPenalty = getVal('hotDayPenalty') / 100;
         const hotDaysPerYear = getVal('hotDaysPerYear');
-        
-        // Weather penalty affects only the air-source portion of the system
-        const weatherFactor = (type === 'HP') ? 1.0 : 0.35; // 100% for HP, 35% for Hybrid
+
+        const weatherFactor = (type === 'HP') ? 1.0 : 0.35;
 
         const winterPenalty = emergencyHeatDays * emergencyHeatCost * weatherFactor;
         const summerPenalty = (currentEnergyCost * 0.6) * hotDayPenalty * (hotDaysPerYear / 120) * weatherFactor;
-        
+
         newEnergyCost += winterPenalty + summerPenalty;
     }
-    // Full geothermal gets no weather penalty
-    
+
     return newEnergyCost;
 }
 
@@ -277,38 +264,38 @@ function calculateAll() {
     const discountRate = getVal('discountRate') / 100;
     const inflationRate = getVal('inflationRate') / 100;
     const currentTotalCost = getVal('currentAnnualCost') + getVal('brokenSystemPenalty');
-    
+
     const baselineBody = document.getElementById('baselineBody');
     const hybridBody = document.getElementById('hybridBody');
     const upgradeBody = document.getElementById('upgradeBody');
     const npvBody = document.getElementById('npvBody');
     const debugOutput = document.getElementById('debugOutput');
-    
+
     baselineBody.innerHTML = '';
     hybridBody.innerHTML = '';
     upgradeBody.innerHTML = '';
     npvBody.innerHTML = '';
-    
+
     let debugText = `Current total annual cost (broken system): ${currentTotalCost.toLocaleString()}<br>`;
     debugText += `Discount rate: ${(discountRate * 100).toFixed(1)}%, Inflation rate: ${(inflationRate * 100).toFixed(1)}%<br><br>`;
-    
+
     const heatPumpResults = [];
     const hybridResults = [];
     const geothermalResults = [];
-    
+
     debugText += `<strong>=== BASELINE HEAT PUMP OPTIONS ===</strong><br>`;
     const heatPumpOptions = getHeatPumpOptions();
-    
+
     heatPumpOptions.forEach(option => {
         if (option.cost > 0 && option.name.trim()) {
             const newEnergyCost = calculateNewEnergyCost(option.seer, option.hspf, option.type);
             const totalNewAnnualCost = newEnergyCost + option.maintenance;
             const annualSavings = currentTotalCost - totalNewAnnualCost;
-            
+
             debugText += `${option.name}: Cost ${option.cost.toLocaleString()}, `;
             debugText += `Energy ${newEnergyCost.toFixed(0)}, Total Annual ${totalNewAnnualCost.toFixed(0)}, `;
             debugText += `Savings ${annualSavings.toFixed(0)}<br>`;
-            
+
             heatPumpResults.push({
                 ...option,
                 energyCost: newEnergyCost,
@@ -317,20 +304,20 @@ function calculateAll() {
             });
         }
     });
-    
+
     if (heatPumpResults.length === 0) {
         debugText += `<br><strong>No valid heat pump options found</strong><br><br>`;
         debugOutput.innerHTML = debugText;
         generateCostProjectionChart([], [], []);
         return;
     }
-    
-    const bestHeatPump = heatPumpResults.reduce((best, current) => 
+
+    const bestHeatPump = heatPumpResults.reduce((best, current) =>
         current.totalAnnualCost < best.totalAnnualCost ? current : best
     );
-    
+
     debugText += `<br><strong>Best Heat Pump Baseline:</strong> ${bestHeatPump.name} with ${bestHeatPump.totalAnnualCost.toFixed(0)} annual cost<br><br>`;
-    
+
     const calculateUpgradeMetrics = (option) => {
         const taxCredit = (option.type !== 'HP') ? option.cost * taxCreditRate : 0;
         const netCost = option.cost - taxCredit;
@@ -345,7 +332,6 @@ function calculateAll() {
         debugText += `${option.name} (Type: ${option.type}): Extra cost ${extraInvestment.toLocaleString()} (net: ${netExtraInvestment.toLocaleString()}), `;
         debugText += `Extra savings ${extraAnnualSavings.toFixed(0)}/yr, Payback ${simplePayback.toFixed(1)} years<br>`;
 
-        // Calculate NPV
         const heatPumpLifespan = getVal('heatPumpLifespan');
         const geothermalLifespan = getVal('geothermalLifespan');
         let cumulativeNPV = -netExtraInvestment;
@@ -356,20 +342,17 @@ function calculateAll() {
             const presentValue = inflatedSavings / Math.pow(1 + discountRate, year);
             cumulativeNPV += presentValue;
 
-            // Geothermal replacement cost (benefit for geo as HP needs replacement sooner)
             if (year === geothermalLifespan && (option.type === 'HYBRID' || option.type === 'GEO')) {
-                const replacementCost = option.cost * 0.7; // Assume 70% for unit, not loops
+                const replacementCost = option.cost * 0.7;
                 const inflatedReplacementCost = replacementCost * Math.pow(1 + inflationRate, year - 1);
                 cumulativeNPV -= inflatedReplacementCost / Math.pow(1 + discountRate, year);
             }
 
-            // Heat pump baseline replacement cost (avoided cost)
             if (year === heatPumpLifespan) {
                 const baselineReplacementCost = bestHeatPump.cost * Math.pow(1 + inflationRate, year - 1);
                 cumulativeNPV += baselineReplacementCost / Math.pow(1 + discountRate, year);
             }
-            
-            // Second heat pump replacement if lifespan is short
+
             if (year === heatPumpLifespan * 2) {
                     const baselineReplacementCost = bestHeatPump.cost * Math.pow(1 + inflationRate, year - 1);
                 cumulativeNPV += baselineReplacementCost / Math.pow(1 + discountRate, year);
@@ -396,7 +379,7 @@ function calculateAll() {
             npv20yr: npvAtIntervals[20]
         };
     };
-    
+
     debugText += `<br><strong>=== HYBRID GEOTHERMAL OPTIONS ===</strong><br>`;
     const hybridOptions = getHybridOptions();
     hybridOptions.forEach(option => {
@@ -414,7 +397,7 @@ function calculateAll() {
     });
 
     debugOutput.innerHTML = debugText;
-    
+
     const formatCurrency = (val) => val.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
     const formatNPV = (value) => {
         const color = value >= 0 ? '#27ae60' : '#e74c3c';
@@ -424,7 +407,7 @@ function calculateAll() {
         if (years > 50) return 'Never';
         return `${years.toFixed(1)} years`;
     };
-    
+
     heatPumpResults.forEach((result) => {
         const row = baselineBody.insertRow();
         row.innerHTML = `
@@ -439,7 +422,7 @@ function calculateAll() {
             row.style.backgroundColor = '#e8f5e8';
         }
     });
-    
+
     const populateUpgradeTable = (body, results) => {
         results.forEach((result) => {
             const row = body.insertRow();
@@ -456,7 +439,7 @@ function calculateAll() {
 
     populateUpgradeTable(hybridBody, hybridResults);
     populateUpgradeTable(upgradeBody, geothermalResults);
-    
+
     [...hybridResults, ...geothermalResults].forEach((result) => {
         const row = npvBody.insertRow();
         const type = hybridResults.includes(result) ? 'Hybrid' : 'Full Geothermal';
@@ -470,66 +453,140 @@ function calculateAll() {
             <td>${formatNPV(result.npv20yr)}</td>
         `;
     });
-    
+
     let bestHybrid = null;
     let bestGeo = null;
-    
+
     if (hybridResults.length > 0) {
-        bestHybrid = hybridResults.reduce((best, current) => 
+        bestHybrid = hybridResults.reduce((best, current) =>
             current.npv20yr > best.npv20yr ? current : best
         );
     }
-    
+
     if (geothermalResults.length > 0) {
-        bestGeo = geothermalResults.reduce((best, current) => 
+        bestGeo = geothermalResults.reduce((best, current) =>
             current.npv20yr > best.npv20yr ? current : best
         );
     }
-    
+
     let recommendation = bestHeatPump.name;
-    let bestOverallNPV = 0; 
-    
+    let bestOverallNPV = 0;
+
     if (bestHybrid && bestHybrid.npv20yr > bestOverallNPV) {
         recommendation = bestHybrid.name;
         bestOverallNPV = bestHybrid.npv20yr;
     }
-    
+
     if (bestGeo && bestGeo.npv20yr > bestOverallNPV) {
         recommendation = bestGeo.name;
     }
-    
+
     document.getElementById('bestHeatPump').textContent = bestHeatPump.name;
     document.getElementById('bestHybrid').textContent = bestHybrid ? bestHybrid.name : 'N/A';
     document.getElementById('bestGeo').textContent = bestGeo ? bestGeo.name : 'N/A';
     document.getElementById('recommendation').textContent = recommendation;
-    
+
     generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults);
 }
 
-// This function does not need changes, it will correctly plot the data it receives.
-function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults) {
-        const canvas = document.getElementById('costProjectionChart');
-        if (!canvas) return;
-    
-        const ctx = canvas.getContext('2d');
-        const chartContainer = canvas.parentElement;
 
-        // Handle high-DPI displays for crisp rendering
-        if (window.devicePixelRatio > 1) {
-            const canvasRect = chartContainer.getBoundingClientRect();
-            canvas.width = canvasRect.width * window.devicePixelRatio;
-            canvas.height = canvasRect.height * window.devicePixelRatio;
-            ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-            canvas.style.width = canvasRect.width + 'px';
-            canvas.style.height = canvasRect.height + 'px';
-        } else {
-            const canvasRect = chartContainer.getBoundingClientRect();
-            canvas.width = canvasRect.width;
-            canvas.height = canvasRect.height;
+function createInteractiveLegend(projectionData, chartUpdater) {
+    const legendContainer = document.getElementById('chartLegend');
+    legendContainer.innerHTML = '<h4>Toggle Options</h4>';
+
+    projectionData.forEach(option => {
+        const wrapper = document.createElement('div');
+        wrapper.classList.add('legend-item');
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.id = `toggle-${option.uniqueId}`;
+        checkbox.value = option.name;
+        checkbox.checked = true;
+        checkbox.style.accentColor = option.color;
+
+        const label = document.createElement('label');
+        label.htmlFor = checkbox.id;
+        label.textContent = option.name;
+        label.style.borderLeft = `4px solid ${option.color}`;
+
+        wrapper.appendChild(checkbox);
+        wrapper.appendChild(label);
+        legendContainer.appendChild(wrapper);
+
+        checkbox.addEventListener('change', chartUpdater);
+    });
+}
+
+
+function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults) {
+    const canvas = document.getElementById('costProjectionChart');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const chartContainer = canvas.parentElement;
+
+    if (window.devicePixelRatio > 1) {
+        const canvasRect = chartContainer.getBoundingClientRect();
+        canvas.width = canvasRect.width * window.devicePixelRatio;
+        canvas.height = canvasRect.height * window.devicePixelRatio;
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        canvas.style.width = canvasRect.width + 'px';
+        canvas.style.height = canvasRect.height + 'px';
+    } else {
+        const canvasRect = chartContainer.getBoundingClientRect();
+        canvas.width = canvasRect.width;
+        canvas.height = canvasRect.height;
+    }
+
+    const inflationRate = getVal('inflationRate') / 100;
+    const years = 30;
+
+    const allOptions = [...heatPumpResults, ...hybridResults, ...geothermalResults];
+    const projectionData = [];
+
+    allOptions.forEach((option, index) => {
+        const yearlyData = [];
+        let cumulativeCost = (option.type === 'HP') ? option.cost : option.netCost;
+        yearlyData.push({ year: 0, cost: cumulativeCost });
+
+        for (let year = 1; year <= years; year++) {
+            const inflatedAnnualCost = option.totalAnnualCost * Math.pow(1 + inflationRate, year - 1);
+            cumulativeCost += inflatedAnnualCost;
+
+            const heatPumpLifespan = getVal('heatPumpLifespan');
+            const geothermalLifespan = getVal('geothermalLifespan');
+            let replacementCost = 0;
+
+            if (option.type === 'HP' && year > 0 && year % heatPumpLifespan === 0) {
+                replacementCost = option.cost * Math.pow(1 + inflationRate, year);
+            } else if ((option.type === 'HYBRID' || option.type === 'GEO') && year > 0 && year % geothermalLifespan === 0) {
+                const futureReplacementCost = getVal('geoReplacementCost');
+                replacementCost = futureReplacementCost * Math.pow(1 + inflationRate, year);
+            }
+
+            if (replacementCost > 0) {
+                cumulativeCost += replacementCost;
+            }
+            yearlyData.push({ year: year, cost: cumulativeCost });
         }
-    
+
+        projectionData.push({
+            name: option.name,
+            data: yearlyData,
+            type: option.type,
+            uniqueId: `option-${index}`,
+            color: option.type === 'HP' ? 'hsl(' + (210 + (heatPumpResults.indexOf(option) * 30)) + ', 70%, 50%)' :
+                option.type === 'HYBRID' ? 'hsl(' + (270 + (hybridResults.indexOf(option) * 30)) + ', 70%, 50%)' :
+                'hsl(' + (120 + (geothermalResults.indexOf(option) * 40)) + ', 70%, 45%)'
+        });
+    });
+
+    const bestHeatPumpData = projectionData.find(p => p.name === heatPumpResults[0]?.name);
+
+    function redrawChart() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
+
         if (heatPumpResults.length === 0) {
             ctx.fillStyle = '#666';
             ctx.font = '16px Arial';
@@ -537,63 +594,26 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             ctx.fillText('Add vendor options to see cost projection', chartContainer.clientWidth / 2, chartContainer.clientHeight / 2);
             return;
         }
-    
-        const inflationRate = getVal('inflationRate') / 100;
-        const years = 30;
-    
-        const allOptions = [...heatPumpResults, ...hybridResults, ...geothermalResults];
-        const projectionData = [];
-    
-        allOptions.forEach(option => {
-            const yearlyData = [];
-            let cumulativeCost = (option.type === 'HP') ? option.cost : option.netCost;
-            yearlyData.push({ year: 0, cost: cumulativeCost });
 
-            for (let year = 1; year <= years; year++) {
-                const inflatedAnnualCost = option.totalAnnualCost * Math.pow(1 + inflationRate, year - 1);
-                cumulativeCost += inflatedAnnualCost;
-                yearlyData.push({ year: year, cost: cumulativeCost });
-
-                const heatPumpLifespan = getVal('heatPumpLifespan');
-                const geothermalLifespan = getVal('geothermalLifespan');
-                let replacementCost = 0;
-
-                if (option.type === 'HP' && year > 0 && year % heatPumpLifespan === 0) {
-                    replacementCost = option.cost * Math.pow(1 + inflationRate, year);
-                } else if ((option.type === 'HYBRID' || option.type === 'GEO') && year > 0 && year % geothermalLifespan === 0) {
-                    const futureReplacementCost = getVal('geoReplacementCost');
-                    replacementCost = futureReplacementCost * Math.pow(1 + inflationRate, year);
-                }
-
-                if (replacementCost > 0) {
-                    cumulativeCost += replacementCost;
-                    yearlyData.push({ year: year, cost: cumulativeCost });
-                }
-            }
-        
-            projectionData.push({
-                name: option.name,
-                data: yearlyData,
-                type: option.type,
-                color: option.type === 'HP' ? 'hsl(' + (210 + (heatPumpResults.indexOf(option) * 30)) + ', 70%, 50%)' : 
-                    option.type === 'HYBRID' ? 'hsl(' + (270 + (hybridResults.indexOf(option) * 30)) + ', 70%, 50%)' :
-                    'hsl(' + (120 + (geothermalResults.indexOf(option) * 40)) + ', 70%, 45%)'
-            });
+        const visibleOptions = projectionData.filter(option => {
+            const checkbox = document.getElementById(`toggle-${option.uniqueId}`);
+            return checkbox ? checkbox.checked : true;
         });
-    
-        if (projectionData.length === 0) return;
-    
-        const maxCost = Math.max(...projectionData.flatMap(p => p.data.map(d => d.cost)));
+
+        if (visibleOptions.length === 0) return;
+
+        const maxCost = Math.max(...visibleOptions.flatMap(p => p.data.map(d => d.cost)));
         const maxYear = years;
-    
+
         const margin = { top: 40, right: 30, bottom: 80, left: 70 };
         const chartWidth = chartContainer.clientWidth - margin.left - margin.right;
         const chartHeight = chartContainer.clientHeight - margin.top - margin.bottom;
-    
+
         const xScale = (year) => margin.left + (year / maxYear) * chartWidth;
         const yScale = (cost) => margin.top + chartHeight - (cost / maxCost) * chartHeight;
-    
-        // --- Draw Gridlines ---
+        
+        // --- Draw Gridlines and Axes ---
+        // (This part of the code is unchanged and correctly draws gridlines and axes)
         ctx.strokeStyle = '#e0e0e0';
         ctx.lineWidth = 0.5;
         const costStep = Math.ceil(maxCost / 8 / 10000) * 10000;
@@ -614,8 +634,7 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             ctx.lineTo(margin.left + chartWidth, y);
             ctx.stroke();
         }
-    
-        // --- Draw Axes ---
+
         ctx.strokeStyle = '#333';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -626,50 +645,7 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         ctx.moveTo(margin.left, margin.top);
         ctx.lineTo(margin.left, margin.top + chartHeight);
         ctx.stroke();
-    
-        function drawMarker(ctx, x, y, type, color, size = 3) {
-            ctx.fillStyle = color;
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 1;
-            switch(type) {
-                case 'circle': ctx.beginPath(); ctx.arc(x, y, size, 0, 2 * Math.PI); ctx.fill(); break;
-                case 'square': ctx.fillRect(x - size, y - size, size * 2, size * 2); break;
-                case 'diamond': ctx.save(); ctx.translate(x,y); ctx.rotate(Math.PI/4); ctx.fillRect(-size, -size, size * 2, size * 2); ctx.restore(); break;
-            }
-        }
-
-        // --- Draw Data Lines & Markers ---
-        const markerTypes = ['circle', 'square', 'diamond'];
-        projectionData.forEach((option, index) => {
-            const markerType = markerTypes[index % markerTypes.length];
         
-            ctx.strokeStyle = option.color;
-            ctx.lineWidth = option.type === 'GEO' ? 2.5 : option.type === 'HYBRID' ? 2 : 1.5;
-        
-            if (option.type === 'HP') ctx.setLineDash([5, 3]);
-            else if (option.type === 'HYBRID') ctx.setLineDash([10, 3, 3, 3]);
-            else ctx.setLineDash([]);
-        
-            ctx.beginPath();
-            option.data.forEach((point, i) => {
-                const x = xScale(point.year);
-                const y = yScale(point.cost);
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            });
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            // *** THIS BLOCK WAS MISSING AND HAS BEEN ADDED BACK ***
-            // This loop draws the markers on the chart lines.
-            option.data.forEach((point) => {
-                if (point.year > 0) { // We'll still skip the marker at Year 0
-                    // The marker size is reduced from 3.5 to 2 for a cleaner look.
-                    drawMarker(ctx, xScale(point.year), yScale(point.cost), markerType, option.color, 2);
-                }
-            });
-        });
-    
         // --- Draw Labels and Titles ---
         ctx.fillStyle = '#333';
         ctx.font = '11px Segoe UI';
@@ -693,60 +669,97 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         ctx.font = 'bold 14px Segoe UI';
         ctx.textAlign = 'center';
         ctx.fillText('30-Year Total Cost Projection (Including Replacements & Inflation)', margin.left + chartWidth / 2, 25);
-                            
-        // --- Draw Legend ---
-        let legendX = margin.left;
-        let legendY = chartContainer.clientHeight - 20;
 
-        projectionData.forEach((option, index) => {
-            const markerType = markerTypes[index % markerTypes.length];
+        // --- Draw Data Lines & Markers ---
+        const markerTypes = ['circle', 'square', 'diamond'];
+        function drawMarker(ctx, x, y, type, color, size = 3) {
+            ctx.fillStyle = color;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1;
+            switch(type) {
+                case 'circle': ctx.beginPath(); ctx.arc(x, y, size, 0, 2 * Math.PI); ctx.fill(); break;
+                case 'square': ctx.fillRect(x - size, y - size, size * 2, size * 2); break;
+                case 'diamond': ctx.save(); ctx.translate(x,y); ctx.rotate(Math.PI/4); ctx.fillRect(-size, -size, size * 2, size * 2); ctx.restore(); break;
+            }
+        }
         
+        visibleOptions.forEach((option, index) => {
+            const markerType = markerTypes[index % markerTypes.length];
+
             ctx.strokeStyle = option.color;
             ctx.lineWidth = option.type === 'GEO' ? 2.5 : option.type === 'HYBRID' ? 2 : 1.5;
-        
+
             if (option.type === 'HP') ctx.setLineDash([5, 3]);
             else if (option.type === 'HYBRID') ctx.setLineDash([10, 3, 3, 3]);
             else ctx.setLineDash([]);
-        
+
             ctx.beginPath();
-            ctx.moveTo(legendX, legendY);
-            ctx.lineTo(legendX + 25, legendY);
+            option.data.forEach((point, i) => {
+                const x = xScale(point.year);
+                const y = yScale(point.cost);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
             ctx.stroke();
             ctx.setLineDash([]);
-        
-            drawMarker(ctx, legendX + 12.5, legendY, markerType, option.color, 3);
-        
-            ctx.fillStyle = '#333';
-            ctx.font = '11px Segoe UI';
-            ctx.textAlign = 'left';
-            ctx.fillText(option.name, legendX + 30, legendY + 4);
-        
-            const textWidth = ctx.measureText(option.name).width;
-            legendX += 30 + textWidth + 15;
-        
-            if (legendX > chartContainer.clientWidth - 100 && index < projectionData.length -1) {
-                legendX = margin.left;
-                legendY += 20;
-            }
+            
+            option.data.forEach((point) => {
+                if (point.year > 0) {
+                    drawMarker(ctx, xScale(point.year), yScale(point.cost), markerType, option.color, 2);
+                }
+            });
         });
+
+        // --- Draw Payback Lines ---
+        if (bestHeatPumpData) {
+            visibleOptions.forEach(option => {
+                if (option.type !== 'HP') {
+                    let breakEvenYear = -1;
+                    for (let year = 1; year <= years; year++) {
+                        if (option.data[year].cost <= bestHeatPumpData.data[year].cost) {
+                            breakEvenYear = year;
+                            break;
+                        }
+                    }
+
+                    if (breakEvenYear !== -1) {
+                        const x = xScale(breakEvenYear);
+                        ctx.beginPath();
+                        ctx.moveTo(x, margin.top);
+                        ctx.lineTo(x, margin.top + chartHeight);
+                        ctx.strokeStyle = option.color;
+                        ctx.lineWidth = 1;
+                        ctx.setLineDash([4, 2]);
+                        ctx.stroke();
+                        ctx.setLineDash([]);
+
+                        ctx.fillStyle = option.color;
+                        ctx.textAlign = 'center';
+                        ctx.fillText(`Payback: ${option.name}`, x, margin.top - 5);
+                    }
+                }
+            });
+        }
+    }
+
+    createInteractiveLegend(projectionData, redrawChart);
+    redrawChart();
 }
 
 function showStatus(message, isError = false) {
     const statusEl = document.getElementById('fileStatus');
     const errorEl = document.getElementById('fileError');
-    
+
     const el = isError ? errorEl : statusEl;
     el.textContent = message;
     el.style.display = 'block';
     (isError ? statusEl : errorEl).style.display = 'none';
-    
+
     setTimeout(() => {
         el.style.display = 'none';
     }, 3000);
 }
 
-// *** MODIFIED FUNCTION ***
-// Updated template to use EER/COP for Geothermal examples.
 function downloadTemplate() {
     const template = `Type,Name,Cost,Rating1,Rating2
 # Enter Heat Pump quotes like this:
@@ -754,7 +767,7 @@ HeatPump,My Heat Pump Quote,10000,15,8.2
 # Enter Geothermal quotes like this (use EER/COP for Rating1/Rating2):
 Hybrid,My Hybrid Quote,35000,20,4.5
 Geothermal,My Full Geothermal Quote,50000,22,5.0`;
-    
+
     const blob = new Blob([template], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -762,12 +775,10 @@ Geothermal,My Full Geothermal Quote,50000,22,5.0`;
     a.download = 'hvac_vendor_template.csv';
     a.click();
     window.URL.revokeObjectURL(url);
-    
+
     showStatus('Template downloaded! Fill in your actual vendor quotes.');
 }
 
-// *** MODIFIED FUNCTION ***
-// Updated example data to use more realistic EER/COP values for geothermal.
 function loadExampleData() {
     const exampleData = `Type,Name,Cost,Rating1,Rating2
 HeatPump,Heat Pump Haller,15401,14.5,7.8
@@ -779,7 +790,7 @@ Hybrid,Hybrid Geo-Morrison, 34882,21,4.6
 
 Geothermal,Full Geo Haller,60000,22.0,5
 Geothermal,Full Geo Morrison,51952,22.0,5`;
-    
+
     try {
         parseVendorData(exampleData);
         showStatus('Example data loaded with accurate geo ratings!');
@@ -791,7 +802,7 @@ Geothermal,Full Geo Morrison,51952,22.0,5`;
 function loadFile(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     const reader = new FileReader();
     reader.onload = function(e) {
         try {
@@ -803,41 +814,39 @@ function loadFile(event) {
     reader.readAsText(file);
 }
 
-// *** MODIFIED FUNCTION ***
-// Updated to handle generic 'Rating1' and 'Rating2' from CSV.
 function parseVendorData(text) {
     try {
         const lines = text.split('\n').map(line => line.trim()).filter(line => line && !line.startsWith('#'));
         if (lines.length === 0) throw new Error('File is empty or only contains comments');
-        
+
         const hasHeader = lines[0].toLowerCase().includes('type');
         const dataLines = hasHeader ? lines.slice(1) : lines;
         if (dataLines.length === 0) throw new Error('No data rows found');
 
-        initializeVendors(); // Clear existing vendors
-        
+        initializeVendors();
+
         let hpCount = 0, hybridCount = 0, geoCount = 0;
         let validRows = 0;
-        
+
         dataLines.forEach((line, index) => {
             if (!line.trim()) return;
-            
+
             const parts = line.split(',').map(part => part.trim().replace(/"/g, ''));
             if (parts.length < 5) {
                 console.warn(`Line ${index + 2}: Skipping, expected 5 columns, got ${parts.length}`);
                 return;
             }
-            
+
             const [type, name, cost, rating1, rating2] = parts;
             const costNum = parseFloat(cost);
             const r1Num = parseFloat(rating1);
             const r2Num = parseFloat(rating2);
-            
+
             if (isNaN(costNum) || isNaN(r1Num) || isNaN(r2Num) || !name.trim()) {
                 console.warn(`Line ${index + 2}: Skipping, invalid data`);
                 return;
             }
-            
+
             validRows++;
             const typeLower = type.toLowerCase();
 
@@ -854,9 +863,9 @@ function parseVendorData(text) {
                 console.warn(`Line ${index + 2}: Unknown type "${type}"`);
             }
         });
-        
+
         if (validRows === 0) throw new Error('No valid data rows found');
-        
+
         setTimeout(() => calculateAll(), 100);
         showStatus(`Successfully loaded ${hpCount} heat pump, ${hybridCount} hybrid, and ${geoCount} geothermal options.`);
     } catch (error) {
@@ -871,7 +880,7 @@ function addVendorFromData(type, id, name, cost, r1, r2) {
     const container = document.getElementById(containers[type]);
     const vendorHTML = createVendorHTML(type, id, name, cost, r1, r2);
     container.insertAdjacentHTML('beforeend', vendorHTML);
-    
+
     if (type === 'hp') heatPumpCounter = Math.max(heatPumpCounter, id);
     else if (type === 'hybrid') hybridCounter = Math.max(hybridCounter, id);
     else geothermalCounter = Math.max(geothermalCounter, id);
@@ -880,7 +889,7 @@ function addVendorFromData(type, id, name, cost, r1, r2) {
 function exportData() {
         const data = [];
         data.push(['Type', 'Name', 'Cost', 'Rating1', 'Rating2']);
-    
+
         const collectData = (counter, type) => {
             for (let i = 1; i <= counter; i++) {
                 const element = document.getElementById(`${type}Vendor${i}`);
@@ -903,11 +912,11 @@ function exportData() {
                 }
             }
         };
-    
+
         collectData(heatPumpCounter, 'hp');
         collectData(hybridCounter, 'hybrid');
         collectData(geothermalCounter, 'geo');
-    
+
         const csv = data.map(row => row.join(',')).join('\n');
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
@@ -916,7 +925,7 @@ function exportData() {
         a.download = 'hvac_analysis_data.csv';
         a.click();
         window.URL.revokeObjectURL(url);
-    
+
         showStatus('Analysis data exported successfully!');
 }
 

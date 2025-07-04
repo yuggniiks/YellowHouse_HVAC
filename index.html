@@ -320,13 +320,16 @@
             </div>
 
             <div class="section">
-                <h2>📈 30-Year Total Cost Projection</h2>
+            <h2>📈 30-Year Total Cost Projection</h2>
                 <div style="margin-bottom: 15px; color: #666; font-size: 14px;">
                     <strong>Cumulative Total Cost:</strong> Shows initial investment plus accumulated energy costs over time.
                     Watch for crossover points where geothermal systems become more cost-effective than heat pumps.
                 </div>
-                <div style="position: relative; height: 500px; background: white; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                    <canvas id="costProjectionChart" style="width: 100%; height: 100%;"></canvas>
+                <div class="chart-container">
+                    <div id="chartLegend" class="chart-legend"></div>
+                    <div style="position: relative; flex-grow: 1; height: 500px; background: white; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <canvas id="costProjectionChart" style="width: 100%; height: 100%;"></canvas>
+                    </div>
                 </div>
                 <div style="margin-top: 10px; font-size: 12px; color: #666;">
                     <strong>Key Insights:</strong> Lines that cross show break-even points. Lower lines after year 20+ indicate better long-term value.
