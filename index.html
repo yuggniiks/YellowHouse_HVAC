@@ -221,6 +221,10 @@
                 <h2>🔧 Step 1: Choose Your Baseline Heat Pump</h2>
                 <div style="margin-bottom: 15px; background: #e8f5e8; padding: 15px; border-radius: 6px; color: #2d5f2d;">
                     <strong>Baseline Comparison:</strong> All options replace only the broken upstairs unit and keep your good 2022 downstairs unit.
+                <div class="baseline-selector">
+                    <label for="baselineSelect">Select Comparison Baseline:</label>
+                    <select id="baselineSelect" onchange="calculateAll()"></select>
+                </div>                
                 </div>
                 <table class="results-table baseline-table" id="baselineTable">
                     <thead>

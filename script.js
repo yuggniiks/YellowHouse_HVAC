@@ -312,9 +312,34 @@ function calculateAll() {
         return;
     }
 
-    const bestHeatPump = heatPumpResults.reduce((best, current) =>
-        current.totalAnnualCost < best.totalAnnualCost ? current : best
-    );
+    // Populate the baseline selector dropdown
+    const baselineSelect = document.getElementById('baselineSelect');
+    const previouslySelected = baselineSelect.value;
+    baselineSelect.innerHTML = ''; // Clear old options
+    heatPumpResults.forEach(hp => {
+        const optionEl = document.createElement('option');
+        optionEl.value = hp.name;
+        optionEl.textContent = hp.name;
+        baselineSelect.appendChild(optionEl);
+    });
+
+    // Try to re-select the previous option if it still exists
+    if (previouslySelected) {
+        baselineSelect.value = previouslySelected;
+    }
+
+    // Determine the baseline from the dropdown, or default to the best
+    const selectedBaselineName = baselineSelect.value;
+    let bestHeatPump = heatPumpResults.find(hp => hp.name === selectedBaselineName);
+
+    // Fallback if the selected option is somehow invalid
+    if (!bestHeatPump) {
+        bestHeatPump = heatPumpResults.reduce((best, current) =>
+            current.totalAnnualCost < best.totalAnnualCost ? current : best
+        );
+        baselineSelect.value = bestHeatPump.name;
+    }
+
 
     debugText += `<br><strong>Best Heat Pump Baseline:</strong> ${bestHeatPump.name} with ${bestHeatPump.totalAnnualCost.toFixed(0)} annual cost<br><br>`;
 
@@ -553,6 +578,7 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         for (let year = 1; year <= years; year++) {
             const inflatedAnnualCost = option.totalAnnualCost * Math.pow(1 + inflationRate, year - 1);
             cumulativeCost += inflatedAnnualCost;
+            yearlyData.push({ year: year, cost: cumulativeCost });
 
             const heatPumpLifespan = getVal('heatPumpLifespan');
             const geothermalLifespan = getVal('geothermalLifespan');
@@ -564,11 +590,12 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
                 const futureReplacementCost = getVal('geoReplacementCost');
                 replacementCost = futureReplacementCost * Math.pow(1 + inflationRate, year);
             }
-
+            
             if (replacementCost > 0) {
                 cumulativeCost += replacementCost;
+                // Add a second data point in the same year to create a vertical jump
+                yearlyData.push({ year: year, cost: cumulativeCost });
             }
-            yearlyData.push({ year: year, cost: cumulativeCost });
         }
 
         projectionData.push({
