@@ -541,8 +541,8 @@ function createInteractiveLegend(projectionData, chartUpdater) {
         checkbox.id = `toggle-${option.uniqueId}`;
         checkbox.value = option.name;
         const defaultOnOptions = [
-            "Full Geo Morrison",
-            "Heat Pump Haller-Theorhetical"
+            "Full Geo Vendor-1",
+            "Heat Pump Vendor-3"
         ];
         checkbox.checked = defaultOnOptions.includes(option.name);
         checkbox.style.accentColor = option.color;
@@ -825,15 +825,15 @@ Geothermal,My Full Geothermal Quote,50000,22,5.0`;
 
 function loadExampleData() {
     const exampleData = `Type,Name,Cost,Rating1,Rating2
-HeatPump,Heat Pump Haller-1,15401,14.5,7.8
-HeatPump,Heat Pump Grainger,9500,15.2,8.5
-HeatPump,Heat Pump Haller-Theorhetical, 20000,20,10
+HeatPump,Heat Pump Vendor-1,15401,14.5,7.8
+HeatPump,Heat Pump Vendor-2,9500,15.2,8.5
+HeatPump,Heat Pump Vendor-3, 20000,20,10
 
-Hybrid,Hybrid Geo-Haller,37500,21.0,4.6
-Hybrid,Hybrid Geo-Morrison, 34882,21,4.6
+Hybrid,Hybrid Geo-Vendor-1,37500,21.0,4.6
+Hybrid,Hybrid Geo-Vendor-2, 34882,21,4.6
 
-Geothermal,Full Geo Haller,60000,22.0,5
-Geothermal,Full Geo Morrison,51952,22.0,5`;
+Geothermal,Full Geo Vendor-1,60000,22.0,5
+Geothermal,Full Geo Vendor-2,51952,22.0,5`;
 
     try {
         parseVendorData(exampleData);
