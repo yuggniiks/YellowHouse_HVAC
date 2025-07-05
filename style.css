@@ -495,3 +495,24 @@ body {
     border: 1px solid #c3e6cb;
     font-size: 14px;
 }
+
+/* Add this class for the animation state */
+.calculate-btn.is-calculating {
+    animation: button-press 0.5s ease-out;
+}
+
+/* Add these keyframes to define the animation */
+@keyframes button-press {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    50% {
+        transform: scale(0.98);
+        box-shadow: 0 2px 3px rgba(0,0,0,0.2);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+}

@@ -242,7 +242,7 @@ function calculateNewEnergyCost(newSEER, newHSPF, type) {
 
     let newEnergyCost = (overallEfficiencyFactor > 0) ? currentEnergyCost / overallEfficiencyFactor : currentEnergyCost;
 
-    if (type === 'HP' || type === 'HYBRID') {
+    if (type === 'HP') { // REMOVED: || type === 'HYBRID'
         const emergencyHeatDays = getVal('emergencyHeatDays');
         const emergencyHeatCost = getVal('emergencyHeatCost');
         const hotDayPenalty = getVal('hotDayPenalty') / 100;
@@ -260,6 +260,14 @@ function calculateNewEnergyCost(newSEER, newHSPF, type) {
 }
 
 function calculateAll() {
+    const calcButton = document.querySelector('.calculate-btn');
+    if (calcButton) {
+        calcButton.classList.add('is-calculating');
+        // Remove the class after the animation completes
+        setTimeout(() => {
+            calcButton.classList.remove('is-calculating');
+        }, 500); // 500ms matches the animation duration
+    }
     const taxCreditRate = getVal('taxCredit') / 100;
     const discountRate = getVal('discountRate') / 100;
     const inflationRate = getVal('inflationRate') / 100;
@@ -511,7 +519,7 @@ function calculateAll() {
     document.getElementById('bestGeo').textContent = bestGeo ? bestGeo.name : 'N/A';
     document.getElementById('recommendation').textContent = recommendation;
 
-    generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults);
+    generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults, bestHeatPump.name);
 }
 
 
@@ -548,7 +556,7 @@ function createInteractiveLegend(projectionData, chartUpdater) {
 }
 
 
-function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults) {
+function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults, selectedBaselineName) {
     const canvas = document.getElementById('costProjectionChart');
     if (!canvas) return;
 
@@ -613,7 +621,7 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         });
     });
 
-    const bestHeatPumpData = projectionData.find(p => p.name === heatPumpResults[0]?.name);
+    const bestHeatPumpData = projectionData.find(p => p.name === selectedBaselineName);
 
     function redrawChart() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
