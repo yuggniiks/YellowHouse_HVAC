@@ -514,7 +514,12 @@ function calculateAll() {
         recommendation = bestGeo.name;
     }
 
-    document.getElementById('bestHeatPump').textContent = bestHeatPump.name;
+    // Determine the objective winner for the "Best Heat Pump" card
+    const winningHeatPump = heatPumpResults.reduce((best, current) =>
+        (current.totalAnnualCost < best.totalAnnualCost ? current : best)
+    );
+
+    document.getElementById('bestHeatPump').textContent = winningHeatPump.name; // Use the new winner variable
     document.getElementById('bestHybrid').textContent = bestHybrid ? bestHybrid.name : 'N/A';
     document.getElementById('bestGeo').textContent = bestGeo ? bestGeo.name : 'N/A';
     document.getElementById('recommendation').textContent = recommendation;
