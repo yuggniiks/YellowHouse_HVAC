@@ -2,7 +2,7 @@
 
 A browser-based tool to financially compare Heat Pump, Hybrid Geothermal, and Full Geothermal HVAC systems using your own vendor quotes.
 
-![image](https://github.com/user-attachments/assets/c032ea5a-c4a7-4fbe-9975-a1187f7109a5)
+![image](https://github.com/user-attachments/assets/3d3d23fd-0e1d-4cea-af5d-d15441ca4892)
 
 ## 🤔 Why Use This Tool?
 
