@@ -24,8 +24,8 @@ Choosing a new HVAC system is a major financial decision. Comparing quotes is di
 
 1.  **Download & Open**: Download the project files and open `index.html` in your web browser. The tool runs completely offline.
 2.  **Enter Data**:
-    * Adjust the financial and system parameters in the top sections to match your situation.
-    * Use the **"➕ Add ... Quote"** buttons to enter vendor data manually, or use the **"📁 Load Vendor File"** button to import a CSV of your quotes.
+    * **The tool loads with example data** so you can see it in action immediately. Edit the values in the vendor cards directly or replace them by using the **"➕ Add ... Quote"** and **"📁 Load Vendor File"** buttons.
+    * Adjust all financial and system parameters in the top sections to match your situation.
 3.  **Analyze**:
     * Use the **Step 1, 2, and 3** tables to review payback periods and NPV.
     * Use the interactive graph to visualize the best long-term option. Select a new baseline from the dropdown in the "Step 1" section to re-calculate the entire analysis.
@@ -58,4 +58,4 @@ Contributions, issues, and feature requests are welcome! Feel free to check the 
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html).
