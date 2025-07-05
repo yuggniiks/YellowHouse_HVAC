@@ -38,7 +38,7 @@ Choosing a new HVAC system is a major financial decision. Comparing quotes is di
 ![image](https://github.com/user-attachments/assets/8da485ca-9ac1-4210-adbf-a97ea6d9cbbb)
 
 **Detailed Financial Tables**
-![image](https://github.com/user-attachments/assets/7f8d63b3-34b0-4036-9919-729d0b6ffa5a)
+![image](https://github.com/user-attachments/assets/062e8fcc-7847-4f60-9a33-7616c6535113)
 
 ---
 
