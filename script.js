@@ -524,13 +524,24 @@ function calculateAll() {
     document.getElementById('bestGeo').textContent = bestGeo ? bestGeo.name : 'N/A';
     document.getElementById('recommendation').textContent = recommendation;
 
-    generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults, bestHeatPump.name);
+    // Pass the names of the best HP and the final recommendation to the chart function
+    generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults, bestHeatPump.name, winningHeatPump.name, recommendation);
+
+    // Manually set the default dropdown selection
+    document.getElementById('baselineSelect').value = "Heat Pump Vendor-3";
 }
 
 
-function createInteractiveLegend(projectionData, chartUpdater) {
+function createInteractiveLegend(projectionData, chartUpdater, bestHpName, recommendedName) {
     const legendContainer = document.getElementById('chartLegend');
     legendContainer.innerHTML = '<h4>Toggle Options</h4>';
+
+    // Dynamically create the list of default options to check
+    const defaultOnOptions = [bestHpName];
+    // Add the recommendation only if it's different from the best heat pump
+    if (bestHpName !== recommendedName) {
+        defaultOnOptions.push(recommendedName);
+    }
 
     projectionData.forEach(option => {
         const wrapper = document.createElement('div');
@@ -540,10 +551,8 @@ function createInteractiveLegend(projectionData, chartUpdater) {
         checkbox.type = 'checkbox';
         checkbox.id = `toggle-${option.uniqueId}`;
         checkbox.value = option.name;
-        const defaultOnOptions = [
-            "Full Geo Vendor-1",
-            "Heat Pump Vendor-3"
-        ];
+        
+        // This line now uses the dynamic list
         checkbox.checked = defaultOnOptions.includes(option.name);
         checkbox.style.accentColor = option.color;
 
@@ -561,7 +570,7 @@ function createInteractiveLegend(projectionData, chartUpdater) {
 }
 
 
-function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults, selectedBaselineName) {
+function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults, selectedBaselineName, bestHpName, recommendedName) {
     const canvas = document.getElementById('costProjectionChart');
     if (!canvas) return;
 
@@ -610,7 +619,6 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             
             if (replacementCost > 0) {
                 cumulativeCost += replacementCost;
-                // Add a second data point in the same year to create a vertical jump
                 yearlyData.push({ year: year, cost: cumulativeCost });
             }
         }
@@ -627,6 +635,15 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
     });
 
     const bestHeatPumpData = projectionData.find(p => p.name === selectedBaselineName);
+
+    // Helper function to reliably get the final cost for a given year
+    const getCostForYear = (data, year) => {
+        const pointsForYear = data.filter(p => p.year === year);
+        if (pointsForYear.length > 0) {
+            return pointsForYear[pointsForYear.length - 1].cost;
+        }
+        return undefined;
+    };
 
     function redrawChart() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -657,11 +674,9 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         const yScale = (cost) => margin.top + chartHeight - (cost / maxCost) * chartHeight;
         
         // --- Draw Gridlines and Axes ---
-        // (This part of the code is unchanged and correctly draws gridlines and axes)
         ctx.strokeStyle = '#e0e0e0';
         ctx.lineWidth = 0.5;
         const costStep = Math.ceil(maxCost / 8 / 10000) * 10000;
-
         for (let year = 0; year <= maxYear; year += 5) {
             const x = xScale(year);
             ctx.beginPath();
@@ -671,14 +686,13 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             ctx.stroke();
         }
         for (let cost = 0; cost <= maxCost; cost += costStep) {
-            if(cost === 0) continue;
+            if (cost === 0) continue;
             const y = yScale(cost);
             ctx.beginPath();
             ctx.moveTo(margin.left, y);
             ctx.lineTo(margin.left + chartWidth, y);
             ctx.stroke();
         }
-
         ctx.strokeStyle = '#333';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -690,6 +704,19 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         ctx.lineTo(margin.left, margin.top + chartHeight);
         ctx.stroke();
         
+        // --- Draw Minor X-Axis Ticks ---
+        ctx.strokeStyle = '#aaa'; // A lighter color for minor ticks
+        ctx.lineWidth = 1;
+        for (let year = 0; year <= maxYear; year++) {
+            if (year % 5 !== 0) { // Only draw if not a major tick year
+                const x = xScale(year);
+                ctx.beginPath();
+                ctx.moveTo(x, margin.top + chartHeight); // Start on the x-axis
+                ctx.lineTo(x, margin.top + chartHeight + 5); // Draw a 5px tall tick
+                ctx.stroke();
+            }
+        }
+
         // --- Draw Labels and Titles ---
         ctx.fillStyle = '#333';
         ctx.font = '11px Segoe UI';
@@ -715,27 +742,17 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         ctx.fillText('30-Year Total Cost Projection (Including Replacements & Inflation)', margin.left + chartWidth / 2, 25);
 
         // --- Draw Data Lines & Markers ---
-        const markerTypes = ['circle', 'square', 'diamond'];
-        function drawMarker(ctx, x, y, type, color, size = 3) {
-            ctx.fillStyle = color;
-            ctx.strokeStyle = color;
-            ctx.lineWidth = 1;
-            switch(type) {
-                case 'circle': ctx.beginPath(); ctx.arc(x, y, size, 0, 2 * Math.PI); ctx.fill(); break;
-                case 'square': ctx.fillRect(x - size, y - size, size * 2, size * 2); break;
-                case 'diamond': ctx.save(); ctx.translate(x,y); ctx.rotate(Math.PI/4); ctx.fillRect(-size, -size, size * 2, size * 2); ctx.restore(); break;
-            }
-        }
-        
-        visibleOptions.forEach((option, index) => {
-            const markerType = markerTypes[index % markerTypes.length];
-
+        visibleOptions.forEach((option) => {
             ctx.strokeStyle = option.color;
             ctx.lineWidth = option.type === 'GEO' ? 2.5 : option.type === 'HYBRID' ? 2 : 1.5;
 
-            if (option.type === 'HP') ctx.setLineDash([5, 3]);
-            else if (option.type === 'HYBRID') ctx.setLineDash([10, 3, 3, 3]);
-            else ctx.setLineDash([]);
+            if (option.type === 'HP') {
+                ctx.setLineDash([]); // Solid line for Heat Pump
+            } else if (option.type === 'HYBRID') {
+                ctx.setLineDash([10, 4]); // Long dash for Hybrid
+            } else { // This handles 'GEO'
+                ctx.setLineDash([4, 4]); // Short dash for Full Geothermal
+            }
 
             ctx.beginPath();
             option.data.forEach((point, i) => {
@@ -746,12 +763,6 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             });
             ctx.stroke();
             ctx.setLineDash([]);
-            
-            option.data.forEach((point) => {
-                if (point.year > 0) {
-                    drawMarker(ctx, xScale(point.year), yScale(point.cost), markerType, option.color, 2);
-                }
-            });
         });
 
         // --- Draw Payback Lines ---
@@ -760,14 +771,34 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
                 if (option.type !== 'HP') {
                     let breakEvenYear = -1;
                     for (let year = 1; year <= years; year++) {
-                        if (option.data[year].cost <= bestHeatPumpData.data[year].cost) {
+                        const optionCost = getCostForYear(option.data, year);
+                        const baselineCost = getCostForYear(bestHeatPumpData.data, year);
+                        if (optionCost !== undefined && baselineCost !== undefined && optionCost <= baselineCost) {
                             breakEvenYear = year;
                             break;
                         }
                     }
 
                     if (breakEvenYear !== -1) {
-                        const x = xScale(breakEvenYear);
+                        const prevYear = breakEvenYear - 1;
+                        const geoCostPrev = getCostForYear(option.data, prevYear);
+                        const hpCostPrev = getCostForYear(bestHeatPumpData.data, prevYear);
+                        const geoCostNow = getCostForYear(option.data, breakEvenYear);
+                        const hpCostNow = getCostForYear(bestHeatPumpData.data, breakEvenYear);
+                        let breakEvenPoint = breakEvenYear;
+
+                        if (geoCostPrev !== undefined && hpCostPrev !== undefined && geoCostNow !== undefined && hpCostNow !== undefined) {
+                            const costDiffPrev = geoCostPrev - hpCostPrev;
+                            const costDiffNow = geoCostNow - hpCostNow;
+                            if (costDiffPrev > 0 && costDiffNow <= 0) {
+                                const totalDiff = costDiffPrev - costDiffNow;
+                                if (totalDiff > 0) {
+                                    breakEvenPoint = prevYear + (costDiffPrev / totalDiff);
+                                }
+                            }
+                        }
+
+                        const x = xScale(breakEvenPoint);
                         ctx.beginPath();
                         ctx.moveTo(x, margin.top);
                         ctx.lineTo(x, margin.top + chartHeight);
@@ -776,17 +807,17 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
                         ctx.setLineDash([4, 2]);
                         ctx.stroke();
                         ctx.setLineDash([]);
-
                         ctx.fillStyle = option.color;
                         ctx.textAlign = 'center';
-                        ctx.fillText(`Payback: ${option.name}`, x, margin.top - 5);
+                        const labelX = Math.max(margin.left + 50, Math.min(x, margin.left + chartWidth - 50));
+                        ctx.fillText(`Payback: ${option.name}`, labelX, margin.top - 5);
                     }
                 }
             });
         }
     }
 
-    createInteractiveLegend(projectionData, redrawChart);
+    createInteractiveLegend(projectionData, redrawChart, bestHpName, recommendedName);
     redrawChart();
 }
 
