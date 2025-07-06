@@ -55,7 +55,7 @@ Choosing a new HVAC system is a major financial decision. Comparing quotes is di
 
 ## 🤝 Contributing
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page][(https://github.com/YOUR_USERNAME/YOUR_REPOSITORY/issues)](https://github.com/yuggniiks/YellowHouse_HVAC/issues).
+Contributions, issues, and feature requests are welcome! Feel free to check the [issues page][(https://github.com/yuggniiks/YellowHouse_HVAC/issues)].
 
 ---
 
