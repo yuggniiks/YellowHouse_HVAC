@@ -443,13 +443,14 @@ function calculateAll() {
 
     heatPumpResults.forEach((result) => {
         const row = baselineBody.insertRow();
+        // Add data-label attributes to each <td>
         row.innerHTML = `
-            <td><strong>${result.name}</strong></td>
-            <td>${formatCurrency(result.cost)}</td>
-            <td>${result.seer} SEER2 / ${result.hspf} HSPF2</td>
-            <td>${formatCurrency(result.energyCost)}</td>
-            <td>${formatCurrency(result.totalAnnualCost)}</td>
-            <td><strong>${formatCurrency(result.annualSavings)}</strong></td>
+            <td data-label="Option"><strong>${result.name}</strong></td>
+            <td data-label="Install Cost">${formatCurrency(result.cost)}</td>
+            <td data-label="Efficiency">${result.seer} SEER2 / ${result.hspf} HSPF2</td>
+            <td data-label="Energy Cost">${formatCurrency(result.energyCost)}</td>
+            <td data-label="Total Annual">${formatCurrency(result.totalAnnualCost)}</td>
+            <td data-label="Annual Savings"><strong>${formatCurrency(result.annualSavings)}</strong></td>
         `;
         if (result.name === bestHeatPump.name) {
             row.style.backgroundColor = '#e8f5e8';
@@ -459,13 +460,14 @@ function calculateAll() {
     const populateUpgradeTable = (body, results) => {
         results.forEach((result) => {
             const row = body.insertRow();
+            // Add data-label attributes to each <td>
             row.innerHTML = `
-                <td><strong>${result.name}</strong></td>
-                <td>${formatCurrency(result.extraInvestment)}</td>
-                <td>${formatCurrency(result.taxCredit)}</td>
-                <td>${formatCurrency(result.netExtraInvestment)}</td>
-                <td><strong>${formatCurrency(result.extraAnnualSavings)}</strong></td>
-                <td>${formatPayback(result.simplePayback)}</td>
+                <td data-label="Option"><strong>${result.name}</strong></td>
+                <td data-label="Extra Cost">${formatCurrency(result.extraInvestment)}</td>
+                <td data-label="Tax Credit">${formatCurrency(result.taxCredit)}</td>
+                <td data-label="Net Extra Cost">${formatCurrency(result.netExtraInvestment)}</td>
+                <td data-label="Extra Savings"><strong>${formatCurrency(result.extraAnnualSavings)}</strong></td>
+                <td data-label="Payback">${formatPayback(result.simplePayback)}</td>
             `;
         });
     };
@@ -476,14 +478,15 @@ function calculateAll() {
     [...hybridResults, ...geothermalResults].forEach((result) => {
         const row = npvBody.insertRow();
         const type = hybridResults.includes(result) ? 'Hybrid' : 'Full Geothermal';
+        // Add data-label attributes to each <td>
         row.innerHTML = `
-            <td><strong>${result.name}</strong></td>
-            <td>${type}</td>
-            <td>${formatCurrency(result.netExtraInvestment)}</td>
-            <td>${formatNPV(result.npv5yr)}</td>
-            <td>${formatNPV(result.npv10yr)}</td>
-            <td>${formatNPV(result.npv15yr)}</td>
-            <td>${formatNPV(result.npv20yr)}</td>
+            <td data-label="Option"><strong>${result.name}</strong></td>
+            <td data-label="Type">${type}</td>
+            <td data-label="Net Investment">${formatCurrency(result.netExtraInvestment)}</td>
+            <td data-label="5 Year NPV">${formatNPV(result.npv5yr)}</td>
+            <td data-label="10 Year NPV">${formatNPV(result.npv10yr)}</td>
+            <td data-label="15 Year NPV">${formatNPV(result.npv15yr)}</td>
+            <td data-label="20 Year NPV">${formatNPV(result.npv20yr)}</td>
         `;
     });
 

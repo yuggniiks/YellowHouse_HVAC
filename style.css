@@ -516,3 +516,100 @@ body {
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
 }
+
+@media (max-width: 768px) {
+    .chart-container {
+        flex-direction: column;
+    }
+
+    .chart-legend {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        flex-basis: auto;
+        margin-bottom: 15px;
+    }
+    
+    .results-table,
+    .results-table tbody,
+    .results-table tr,
+    .results-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .results-table thead {
+        display: none;
+    }
+
+    .results-table tr {
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 10px;
+    }
+
+    .results-table td {
+        padding: 8px 10px;
+        text-align: right;
+        position: relative;
+        border-bottom: 1px solid #eee;
+    }
+
+    .results-table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 10px;
+        font-weight: bold;
+        text-align: left;
+    }
+}
+
+@media (max-width: 768px) {
+    .results-table {
+        border: none;
+        box-shadow: none;
+    }
+
+    /* Hide the original table header on mobile */
+    .results-table thead {
+        display: none;
+    }
+
+    /* Treat each table row as a separate card */
+    .results-table tr {
+        display: block;
+        margin-bottom: 15px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        padding: 5px;
+    }
+
+    /* Make cells full-width and add spacing */
+    .results-table td {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        text-align: right; /* Aligns the value to the right */
+        padding: 12px;
+        padding-left: 50%; /* Make space for the label */
+        position: relative;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .results-table tr:last-child td:last-child,
+    .results-table td:last-child {
+        border-bottom: none;
+    }
+
+    /* This is the magic: create a label from a data-attribute */
+    .results-table td::before {
+        content: attr(data-label); /* Reads the label from the HTML */
+        position: absolute;
+        left: 12px;
+        width: calc(50% - 24px);
+        text-align: left;
+        font-weight: bold;
+        color: #333;
+    }
+}
