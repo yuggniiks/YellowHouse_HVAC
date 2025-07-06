@@ -636,18 +636,21 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
 
     const bestHeatPumpData = projectionData.find(p => p.name === selectedBaselineName);
 
-    // Helper function to reliably get the final cost for a given year
     const getCostForYear = (data, year) => {
         const pointsForYear = data.filter(p => p.year === year);
         if (pointsForYear.length > 0) {
             return pointsForYear[pointsForYear.length - 1].cost;
+        }
+        if (year === 0) {
+            const zeroYearPoint = data.find(p => p.year === 0);
+            if (zeroYearPoint) return zeroYearPoint.cost;
         }
         return undefined;
     };
 
     function redrawChart() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+        
         if (heatPumpResults.length === 0) {
             ctx.fillStyle = '#666';
             ctx.font = '16px Arial';
@@ -665,34 +668,53 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
 
         const maxCost = Math.max(...visibleOptions.flatMap(p => p.data.map(d => d.cost)));
         const maxYear = years;
-
         const margin = { top: 40, right: 30, bottom: 80, left: 70 };
         const chartWidth = chartContainer.clientWidth - margin.left - margin.right;
         const chartHeight = chartContainer.clientHeight - margin.top - margin.bottom;
-
         const xScale = (year) => margin.left + (year / maxYear) * chartWidth;
         const yScale = (cost) => margin.top + chartHeight - (cost / maxCost) * chartHeight;
         
         // --- Draw Gridlines and Axes ---
-        ctx.strokeStyle = '#e0e0e0';
         ctx.lineWidth = 0.5;
-        const costStep = Math.ceil(maxCost / 8 / 10000) * 10000;
-        for (let year = 0; year <= maxYear; year += 5) {
-            const x = xScale(year);
-            ctx.beginPath();
-            ctx.moveTo(x, margin.top);
-            ctx.lineTo(x, margin.top + chartHeight);
-            ctx.strokeStyle = (year > 0 && year % 10 === 0) ? '#d0d0d0' : '#e0e0e0';
-            ctx.stroke();
+
+        // MINOR gridlines (faint)
+        ctx.strokeStyle = '#f0f0f0';
+        for (let year = 1; year <= maxYear; year++) {
+            if (year % 5 !== 0) {
+                const x = xScale(year);
+                ctx.beginPath();
+                ctx.moveTo(x, margin.top);
+                ctx.lineTo(x, margin.top + chartHeight);
+                ctx.stroke();
+            }
         }
-        for (let cost = 0; cost <= maxCost; cost += costStep) {
-            if (cost === 0) continue;
+        for (let cost = 10000; cost < maxCost; cost += 10000) {
             const y = yScale(cost);
             ctx.beginPath();
             ctx.moveTo(margin.left, y);
             ctx.lineTo(margin.left + chartWidth, y);
             ctx.stroke();
         }
+
+        // MAJOR gridlines (darker)
+        const costStep = Math.ceil(maxCost / 8 / 10000) * 10000;
+        ctx.strokeStyle = '#e0e0e0';
+        for (let year = 5; year <= maxYear; year += 5) {
+            const x = xScale(year);
+            ctx.beginPath();
+            ctx.moveTo(x, margin.top);
+            ctx.lineTo(x, margin.top + chartHeight);
+            ctx.stroke();
+        }
+        for (let cost = costStep; cost < maxCost; cost += costStep) {
+            const y = yScale(cost);
+            ctx.beginPath();
+            ctx.moveTo(margin.left, y);
+            ctx.lineTo(margin.left + chartWidth, y);
+            ctx.stroke();
+        }
+
+        // Main X and Y axes
         ctx.strokeStyle = '#333';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -705,14 +727,14 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         ctx.stroke();
         
         // --- Draw Minor X-Axis Ticks ---
-        ctx.strokeStyle = '#aaa'; // A lighter color for minor ticks
+        ctx.strokeStyle = '#aaa'; 
         ctx.lineWidth = 1;
         for (let year = 0; year <= maxYear; year++) {
-            if (year % 5 !== 0) { // Only draw if not a major tick year
+            if (year % 5 !== 0) { 
                 const x = xScale(year);
                 ctx.beginPath();
-                ctx.moveTo(x, margin.top + chartHeight); // Start on the x-axis
-                ctx.lineTo(x, margin.top + chartHeight + 5); // Draw a 5px tall tick
+                ctx.moveTo(x, margin.top + chartHeight); 
+                ctx.lineTo(x, margin.top + chartHeight + 5); 
                 ctx.stroke();
             }
         }
@@ -726,7 +748,8 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             ctx.fillText(year.toString(), xScale(year), margin.top + chartHeight + 20);
         }
         ctx.textAlign = 'right';
-        for (let cost = 0; cost <= maxCost; cost += costStep) {
+        // This loop now correctly uses the 'costStep' variable defined earlier
+        for (let cost = costStep; cost <= maxCost; cost += costStep) {
             if (cost > 0) ctx.fillText('$' + Math.round(cost / 1000) + 'k', margin.left - 8, yScale(cost) + 4);
         }
         ctx.font = '12px Segoe UI';
@@ -745,15 +768,13 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         visibleOptions.forEach((option) => {
             ctx.strokeStyle = option.color;
             ctx.lineWidth = option.type === 'GEO' ? 2.5 : option.type === 'HYBRID' ? 2 : 1.5;
-
             if (option.type === 'HP') {
-                ctx.setLineDash([]); // Solid line for Heat Pump
+                ctx.setLineDash([]);
             } else if (option.type === 'HYBRID') {
-                ctx.setLineDash([10, 4]); // Long dash for Hybrid
-            } else { // This handles 'GEO'
-                ctx.setLineDash([4, 4]); // Short dash for Full Geothermal
+                ctx.setLineDash([10, 4]);
+            } else {
+                ctx.setLineDash([4, 4]);
             }
-
             ctx.beginPath();
             option.data.forEach((point, i) => {
                 const x = xScale(point.year);
@@ -820,7 +841,6 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
     createInteractiveLegend(projectionData, redrawChart, bestHpName, recommendedName);
     redrawChart();
 }
-
 function showStatus(message, isError = false) {
     const statusEl = document.getElementById('fileStatus');
     const errorEl = document.getElementById('fileError');
