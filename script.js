@@ -3,6 +3,9 @@
 let heatPumpCounter = 0;
 let hybridCounter = 0;
 let geothermalCounter = 0;
+let selectedBaselineName = null; // Global state for the baseline
+let userCheckboxStates = {};     // Stores the user's toggle choices
+let isInitialLoad = true;        // Flag for the first chart render
 
 function getVal(id) {
     const element = document.getElementById(id);
@@ -119,6 +122,9 @@ function addGeothermalVendor() {
 function removeVendor(type, id) {
     const vendorElement = document.getElementById(`${type}Vendor${id}`);
     if (vendorElement) {
+        if (type === 'hp' && getText(`hpName${id}`) === selectedBaselineName) {
+            selectedBaselineName = null; // Reset baseline if it's removed
+        }
         vendorElement.remove();
         calculateAll();
     }
@@ -136,6 +142,7 @@ function initializeVendors() {
     heatPumpCounter = 0;
     hybridCounter = 0;
     geothermalCounter = 0;
+    selectedBaselineName = null;
 }
 
 function getHeatPumpOptions() {
@@ -263,10 +270,9 @@ function calculateAll() {
     const calcButton = document.querySelector('.calculate-btn');
     if (calcButton) {
         calcButton.classList.add('is-calculating');
-        // Remove the class after the animation completes
         setTimeout(() => {
             calcButton.classList.remove('is-calculating');
-        }, 500); // 500ms matches the animation duration
+        }, 500);
     }
     const taxCreditRate = getVal('taxCredit') / 100;
     const discountRate = getVal('discountRate') / 100;
@@ -320,36 +326,18 @@ function calculateAll() {
         return;
     }
 
-    // Populate the baseline selector dropdown
-    const baselineSelect = document.getElementById('baselineSelect');
-    const previouslySelected = baselineSelect.value;
-    baselineSelect.innerHTML = ''; // Clear old options
-    heatPumpResults.forEach(hp => {
-        const optionEl = document.createElement('option');
-        optionEl.value = hp.name;
-        optionEl.textContent = hp.name;
-        baselineSelect.appendChild(optionEl);
-    });
-
-    // Try to re-select the previous option if it still exists
-    if (previouslySelected) {
-        baselineSelect.value = previouslySelected;
-    }
-
-    // Determine the baseline from the dropdown, or default to the best
-    const selectedBaselineName = baselineSelect.value;
-    let bestHeatPump = heatPumpResults.find(hp => hp.name === selectedBaselineName);
-
-    // Fallback if the selected option is somehow invalid
-    if (!bestHeatPump) {
-        bestHeatPump = heatPumpResults.reduce((best, current) =>
+    // New Baseline Selection Logic
+    if (!selectedBaselineName || !heatPumpResults.some(hp => hp.name === selectedBaselineName)) {
+        const bestOptionForBaseline = heatPumpResults.reduce((best, current) =>
             current.totalAnnualCost < best.totalAnnualCost ? current : best
         );
-        baselineSelect.value = bestHeatPump.name;
+        selectedBaselineName = bestOptionForBaseline.name;
     }
 
+    let bestHeatPump = heatPumpResults.find(hp => hp.name === selectedBaselineName);
 
-    debugText += `<br><strong>Best Heat Pump Baseline:</strong> ${bestHeatPump.name} with ${bestHeatPump.totalAnnualCost.toFixed(0)} annual cost<br><br>`;
+
+    debugText += `<br><strong>Active Heat Pump Baseline:</strong> ${bestHeatPump.name} with ${bestHeatPump.totalAnnualCost.toFixed(0)} annual cost<br><br>`;
 
     const calculateUpgradeMetrics = (option) => {
         const taxCredit = (option.type !== 'HP') ? option.cost * taxCreditRate : 0;
@@ -443,7 +431,6 @@ function calculateAll() {
 
     heatPumpResults.forEach((result) => {
         const row = baselineBody.insertRow();
-        // Add data-label attributes to each <td>
         row.innerHTML = `
             <td data-label="Option"><strong>${result.name}</strong></td>
             <td data-label="Install Cost">${formatCurrency(result.cost)}</td>
@@ -454,13 +441,13 @@ function calculateAll() {
         `;
         if (result.name === bestHeatPump.name) {
             row.style.backgroundColor = '#e8f5e8';
+            row.style.fontWeight = 'bold';
         }
     });
 
     const populateUpgradeTable = (body, results) => {
         results.forEach((result) => {
             const row = body.insertRow();
-            // Add data-label attributes to each <td>
             row.innerHTML = `
                 <td data-label="Option"><strong>${result.name}</strong></td>
                 <td data-label="Extra Cost">${formatCurrency(result.extraInvestment)}</td>
@@ -478,7 +465,6 @@ function calculateAll() {
     [...hybridResults, ...geothermalResults].forEach((result) => {
         const row = npvBody.insertRow();
         const type = hybridResults.includes(result) ? 'Hybrid' : 'Full Geothermal';
-        // Add data-label attributes to each <td>
         row.innerHTML = `
             <td data-label="Option"><strong>${result.name}</strong></td>
             <td data-label="Type">${type}</td>
@@ -517,34 +503,22 @@ function calculateAll() {
         recommendation = bestGeo.name;
     }
 
-    // Determine the objective winner for the "Best Heat Pump" card
     const winningHeatPump = heatPumpResults.reduce((best, current) =>
         (current.totalAnnualCost < best.totalAnnualCost ? current : best)
     );
 
-    document.getElementById('bestHeatPump').textContent = winningHeatPump.name; // Use the new winner variable
+    document.getElementById('bestHeatPump').textContent = winningHeatPump.name;
     document.getElementById('bestHybrid').textContent = bestHybrid ? bestHybrid.name : 'N/A';
     document.getElementById('bestGeo').textContent = bestGeo ? bestGeo.name : 'N/A';
     document.getElementById('recommendation').textContent = recommendation;
 
-    // Pass the names of the best HP and the final recommendation to the chart function
-    generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults, bestHeatPump.name, winningHeatPump.name, recommendation);
-
-    // Manually set the default dropdown selection
-    document.getElementById('baselineSelect').value = "Heat Pump Vendor-3";
+    generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults, recommendation);
 }
 
 
-function createInteractiveLegend(projectionData, chartUpdater, bestHpName, recommendedName) {
+function createInteractiveLegend(projectionData, chartUpdater, recommendedName) {
     const legendContainer = document.getElementById('chartLegend');
     legendContainer.innerHTML = '<h4>Toggle Options</h4>';
-
-    // Dynamically create the list of default options to check
-    const defaultOnOptions = [bestHpName];
-    // Add the recommendation only if it's different from the best heat pump
-    if (bestHpName !== recommendedName) {
-        defaultOnOptions.push(recommendedName);
-    }
 
     projectionData.forEach(option => {
         const wrapper = document.createElement('div');
@@ -555,8 +529,24 @@ function createInteractiveLegend(projectionData, chartUpdater, bestHpName, recom
         checkbox.id = `toggle-${option.uniqueId}`;
         checkbox.value = option.name;
         
-        // This line now uses the dynamic list
-        checkbox.checked = defaultOnOptions.includes(option.name);
+        if (isInitialLoad) {
+            // On first load, set defaults: baseline + recommendation
+            const defaultOnOptions = [selectedBaselineName];
+            if (selectedBaselineName !== recommendedName) {
+                defaultOnOptions.push(recommendedName);
+            }
+            if (option.type === 'HP') {
+                checkbox.checked = option.name === selectedBaselineName;
+            } else {
+                checkbox.checked = defaultOnOptions.includes(option.name);
+            }
+            // Store this default state
+            userCheckboxStates[option.name] = checkbox.checked;
+        } else {
+            // On subsequent loads, use the stored user state
+            checkbox.checked = userCheckboxStates[option.name] || false;
+        }
+        
         checkbox.style.accentColor = option.color;
 
         const label = document.createElement('label');
@@ -568,12 +558,16 @@ function createInteractiveLegend(projectionData, chartUpdater, bestHpName, recom
         wrapper.appendChild(label);
         legendContainer.appendChild(wrapper);
 
-        checkbox.addEventListener('change', chartUpdater);
+        checkbox.addEventListener('change', (e) => chartUpdater(e, option));
     });
+    // After the first load, all subsequent loads will use the stored states
+    if (isInitialLoad) {
+        isInitialLoad = false;
+    }
 }
 
 
-function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults, selectedBaselineName, bestHpName, recommendedName) {
+function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults, recommendedName) {
     const canvas = document.getElementById('costProjectionChart');
     if (!canvas) return;
 
@@ -650,6 +644,31 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         }
         return undefined;
     };
+    
+    const handleLegendToggle = (event, toggledOption) => {
+        const checkbox = event.target;
+        // Store the state of the checkbox that was just changed
+        userCheckboxStates[toggledOption.name] = checkbox.checked;
+
+        if (toggledOption.type === 'HP') {
+            if (!checkbox.checked) {
+                checkbox.checked = true;
+                userCheckboxStates[toggledOption.name] = true; // Re-store correct state
+                return;
+            }
+            // Uncheck all other HP options and store their new state
+            projectionData.forEach(opt => {
+                if (opt.type === 'HP' && opt.name !== toggledOption.name) {
+                    userCheckboxStates[opt.name] = false;
+                }
+            });
+            
+            selectedBaselineName = toggledOption.name;
+            calculateAll();
+        } else {
+            redrawChart();
+        }
+    };
 
     function redrawChart() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -677,10 +696,7 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         const xScale = (year) => margin.left + (year / maxYear) * chartWidth;
         const yScale = (cost) => margin.top + chartHeight - (cost / maxCost) * chartHeight;
         
-        // --- Draw Gridlines and Axes ---
         ctx.lineWidth = 0.5;
-
-        // MINOR gridlines (faint)
         ctx.strokeStyle = '#f0f0f0';
         for (let year = 1; year <= maxYear; year++) {
             if (year % 5 !== 0) {
@@ -699,7 +715,6 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             ctx.stroke();
         }
 
-        // MAJOR gridlines (darker)
         const costStep = Math.ceil(maxCost / 8 / 10000) * 10000;
         ctx.strokeStyle = '#e0e0e0';
         for (let year = 5; year <= maxYear; year += 5) {
@@ -717,7 +732,6 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             ctx.stroke();
         }
 
-        // Main X and Y axes
         ctx.strokeStyle = '#333';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -729,7 +743,6 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         ctx.lineTo(margin.left, margin.top + chartHeight);
         ctx.stroke();
         
-        // --- Draw Minor X-Axis Ticks ---
         ctx.strokeStyle = '#aaa'; 
         ctx.lineWidth = 1;
         for (let year = 0; year <= maxYear; year++) {
@@ -742,7 +755,6 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             }
         }
 
-        // --- Draw Labels and Titles ---
         ctx.fillStyle = '#333';
         ctx.font = '11px Segoe UI';
         ctx.textAlign = 'center';
@@ -751,7 +763,6 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             ctx.fillText(year.toString(), xScale(year), margin.top + chartHeight + 20);
         }
         ctx.textAlign = 'right';
-        // This loop now correctly uses the 'costStep' variable defined earlier
         for (let cost = costStep; cost <= maxCost; cost += costStep) {
             if (cost > 0) ctx.fillText('$' + Math.round(cost / 1000) + 'k', margin.left - 8, yScale(cost) + 4);
         }
@@ -767,7 +778,6 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         ctx.textAlign = 'center';
         ctx.fillText('30-Year Total Cost Projection (Including Replacements & Inflation)', margin.left + chartWidth / 2, 25);
 
-        // --- Draw Data Lines & Markers ---
         visibleOptions.forEach((option) => {
             ctx.strokeStyle = option.color;
             ctx.lineWidth = option.type === 'GEO' ? 2.5 : option.type === 'HYBRID' ? 2 : 1.5;
@@ -789,7 +799,6 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             ctx.setLineDash([]);
         });
 
-        // --- Draw Payback Lines ---
         if (bestHeatPumpData) {
             visibleOptions.forEach(option => {
                 if (option.type !== 'HP') {
@@ -841,9 +850,10 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         }
     }
 
-    createInteractiveLegend(projectionData, redrawChart, bestHpName, recommendedName);
+    createInteractiveLegend(projectionData, handleLegendToggle, recommendedName);
     redrawChart();
 }
+
 function showStatus(message, isError = false) {
     const statusEl = document.getElementById('fileStatus');
     const errorEl = document.getElementById('fileError');
@@ -881,10 +891,10 @@ function loadExampleData() {
     const exampleData = `Type,Name,Cost,Rating1,Rating2
 HeatPump,Heat Pump Vendor-1,15401,14.5,7.8
 HeatPump,Heat Pump Vendor-2,9500,15.2,8.5
-HeatPump,Heat Pump Vendor-3, 20000,20,10
+HeatPump,Heat Pump Vendor-3,20000,20,10
 
 Hybrid,Hybrid Geo-Vendor-1,37500,21.0,4.6
-Hybrid,Hybrid Geo-Vendor-2, 34882,21,4.6
+Hybrid,Hybrid Geo-Vendor-2,34882,21,4.6
 
 Geothermal,Full Geo Vendor-1,60000,22.0,5
 Geothermal,Full Geo Vendor-2,51952,22.0,5`;
@@ -1029,7 +1039,7 @@ function exportData() {
 
 window.onload = function() {
     setTimeout(() => {
-        loadExampleData(); // This loads the data and initializes the vendors
-        calculateAll();      // This now runs with the data loaded
+        loadExampleData();
+        calculateAll();
     }, 200);
 };
