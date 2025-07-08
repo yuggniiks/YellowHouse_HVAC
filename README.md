@@ -4,6 +4,9 @@ https://yuggniiks.github.io/YellowHouse_HVAC/
 
 A browser-based tool to financially compare Heat Pump, Hybrid Geothermal, and Full Geothermal HVAC systems using your own vendor quotes.
 
+**Interactive Graph with Toggles and Payback Line**
+![image](https://github.com/user-attachments/assets/f9403c57-4104-4e23-9b14-44f504f475f5)
+
 ![image](https://github.com/user-attachments/assets/3d3d23fd-0e1d-4cea-af5d-d15441ca4892)
 ![image](https://github.com/user-attachments/assets/c3638e16-9e3e-4cee-a554-ed9b1efab58f)
 
@@ -36,9 +39,6 @@ Choosing a new HVAC system is a major financial decision. Comparing quotes is di
 ---
 
 ## 🖼️ Screenshots
-
-**Interactive Graph with Toggles and Payback Line**
-![image](https://github.com/user-attachments/assets/f9403c57-4104-4e23-9b14-44f504f475f5)
 
 **Detailed Financial Tables**
 ![image](https://github.com/user-attachments/assets/062e8fcc-7847-4f60-9a33-7616c6535113)
