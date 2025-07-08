@@ -57,6 +57,11 @@
                             <input type="number" id="electricityRate" value="0.169" step="0.001" onchange="calculateAll()">
                             <small>Current total rate</small>
                         </div>
+                         <div class="input-group">
+                            <label for="naturalGasPrice">Natural Gas Price ($/therm)</label>
+                            <input type="number" id="naturalGasPrice" value="0.7" step="0.01" onchange="calculateAll()">
+                            <small>From your utility bill</small>
+                        </div>
                         <div class="input-group">
                             <label for="inflationRate">Annual Rate Increase (%)</label>
                             <input type="number" id="inflationRate" value="3.5" step="0.1" onchange="calculateAll()">
@@ -67,16 +72,16 @@
                             <input type="number" id="discountRate" value="3" step="0.1" onchange="calculateAll()">
                             <small>Time value of money</small>
                         </div>
-                        <div class="input-group">
+                         <div class="input-group">
                             <label for="taxCredit">Tax Credit (%)</label>
                             <input type="number" id="taxCredit" value="30" onchange="calculateAll()">
-                            <small>Geothermal systems only</small>
+                            <small>For Geo systems only</small>
                         </div>
                     </div>
                 </div>
 
                 <div class="section compact-section">
-                    <h2>🏠 Old System Benchmark (Pre-Repair)</h2>
+                    <h2>🏠 Old System Benchmark</h2>
                     <div class="compact-grid">
                         <div class="input-group">
                             <label for="currentAnnualCost">Old System Annual Cost ($)</label>
@@ -98,69 +103,108 @@
                             <input type="number" id="currentHSPF" value="7.4" step="0.1" onchange="calculateAll()">
                             <small>Average of both old units</small>
                         </div>
-                        
-                        <div class="input-group">
-                            <label for="heatPumpLifespan">Heat Pump Lifespan (years)</label>
-                            <input type="number" id="heatPumpLifespan" value="18" onchange="calculateAll()">
-                            <small>Typical 15-20 years</small>
-                        </div>
-                        <div class="input-group">
-                            <label for="geothermalLifespan">Geothermal Lifespan (years)</label>
-                            <input type="number" id="geothermalLifespan" value="25" onchange="calculateAll()">
-                            <small>Units: 20-25, loops: 50+</small>
+                         <div class="input-group">
+                            <label for="annualHeatingLoad">Annual Heating Load (therms)</label>
+                            <input type="number" id="annualHeatingLoad" value="600" onchange="calculateAll()">
+                            <small>Est. therms for heating/yr</small>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="section compact-section">
-                <h2>🌡️ Weather Impact (Heat Pumps Only)</h2>
-                <div class="compact-grid">
-                    <div class="input-group">
-                        <label for="emergencyHeatDays">Emergency Heat Days</label>
-                        <input type="number" id="emergencyHeatDays" value="35" onchange="calculateAll()">
-                        <small>Days below 20°F</small>
+            <div class="two-column">
+                <div class="section compact-section">
+                    
+                <div class="section compact-section">
+                    <h2>🛠️ Lifespan & Maintenance</h2>
+                    <div class="three-column">
+
+                        <div class="input-group-container">
+                            <h3>Heat Pump</h3>
+                            <div class="input-group">
+                                <label for="heatPumpLifespan">Lifespan (yrs)</label>
+                                <input type="number" id="heatPumpLifespan" value="18" onchange="calculateAll()">
+                                <small>Typical: 15-20 years</small>
+                            </div>
+                            <div class="input-group">
+                                <label for="hpMaintenance">Annual Maint. ($)</label>
+                                <input type="number" id="hpMaintenance" value="250" onchange="calculateAll()">
+                                <small>Annual service contract</small>
+                            </div>
+                        </div>
+
+                        <div class="input-group-container">
+                            <h3>Geothermal</h3>
+                            <div class="input-group">
+                                <label for="geothermalLifespan">Unit Lifespan (yrs)</label>
+                                <input type="number" id="geothermalLifespan" value="25" onchange="calculateAll()">
+                                <small>Units: 20-25, loops: 50+</small>
+                            </div>
+                            <div class="input-group">
+                                <label for="geoMaintenance">Annual Maint. ($)</label>
+                                <input type="number" id="geoMaintenance" value="150" onchange="calculateAll()">
+                                <small>Filter changes, checkups</small>
+                            </div>
+                            <div class="input-group">
+                                <label for="geoReplacementCost">Unit Replacement ($)</label>
+                                <input type="number" id="geoReplacementCost" value="20000" onchange="calculateAll()">
+                                <small>At end of life (e.g., 25 yrs)</small>
+                            </div>
+                        </div>
+
+                        <div class="input-group-container">
+                            <h3>Gas + AC</h3>
+                            <div class="input-group">
+                                <label for="gasLifespan">Lifespan (yrs)</label>
+                                <input type="number" id="gasLifespan" value="20" onchange="calculateAll()">
+                                <small>Furnace & AC: 15-20 years</small>
+                            </div>
+                            <div class="input-group">
+                                <label for="gasMaintenance">Annual Maint. ($)</label>
+                                <input type="number" id="gasMaintenance" value="300" onchange="calculateAll()">
+                                <small>Furnace + AC service</small>
+                            </div>
+                            <div class="input-group">
+                                <label for="gasReplacementCost">Unit Replacement ($)</label>
+                                <input type="number" id="gasReplacementCost" value="15000" onchange="calculateAll()">
+                                <small>At end of life (e.g., 20 yrs)</small>
+                            </div>
+                        </div>
+
                     </div>
-                    <div class="input-group">
-                        <label for="emergencyHeatCost">Emergency Heat Cost ($/day)</label>
-                        <input type="number" id="emergencyHeatCost" value="12" onchange="calculateAll()">
-                        <small>Extra daily cost</small>
-                    </div>
-                    <div class="input-group">
-                        <label for="hotDayPenalty">Hot Day Loss (%)</label>
-                        <input type="number" id="hotDayPenalty" value="15" onchange="calculateAll()">
-                        <small>Efficiency loss 90°F+</small>
-                    </div>
-                    <div class="input-group">
-                        <label for="hotDaysPerYear">Hot Days/Year</label>
-                        <input type="number" id="hotDaysPerYear" value="22" onchange="calculateAll()">
-                        <small>Central PA average</small>
+                </div>                    
+                    
+
+                </div>
+
+                <div class="section compact-section">
+                    <h2>🌡️ Weather Impact (Heat Pumps Only)</h2>
+                    <div class="compact-grid">
+                        <div class="input-group">
+                            <label for="emergencyHeatDays">Emergency Heat Days</label>
+                            <input type="number" id="emergencyHeatDays" value="35" onchange="calculateAll()">
+                            <small>Days below 20°F</small>
+                        </div>
+                        <div class="input-group">
+                            <label for="emergencyHeatCost">Emergency Heat Cost ($/day)</label>
+                            <input type="number" id="emergencyHeatCost" value="12" onchange="calculateAll()">
+                            <small>Extra daily cost</small>
+                        </div>
+                        <div class="input-group">
+                            <label for="hotDayPenalty">Hot Day Loss (%)</label>
+                            <input type="number" id="hotDayPenalty" value="15" onchange="calculateAll()">
+                            <small>Efficiency loss 90°F+</small>
+                        </div>
+                        <div class="input-group">
+                            <label for="hotDaysPerYear">Hot Days/Year</label>
+                            <input type="number" id="hotDaysPerYear" value="22" onchange="calculateAll()">
+                            <small>Central PA average</small>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="section compact-section">
-                <h2>🛠️ Maintenance & Replacement Costs</h2>
-                <div class="compact-grid">
-                    <div class="input-group">
-                        <label for="hpMaintenance">Heat Pump Annual Maint. ($)</label>
-                        <input type="number" id="hpMaintenance" value="250" onchange="calculateAll()">
-                        <small>E.g., annual service contract</small>
-                    </div>
-                    <div class="input-group">
-                        <label for="geoMaintenance">Geothermal Annual Maint. ($)</label>
-                        <input type="number" id="geoMaintenance" value="150" onchange="calculateAll()">
-                        <small>Filter changes, checkups</small>
-                    </div>
-                    <div class="input-group">
-                        <label for="geoReplacementCost">Geo. Unit Replacement Cost ($)</label>
-                        <input type="number" id="geoReplacementCost" value="20000" onchange="calculateAll()">
-                        <small>At end of life (e.g., 25 yrs)</small>
-                    </div>
-                </div>
-            </div>
-
-            <div class="three-column">
+            <div class="four-column">
                 <div class="section baseline-section compact-section">
                     <h2>🔧 Heat Pump Options</h2>
                     <div style="background: #e8f5e8; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 12px;">
@@ -204,6 +248,21 @@
                         ➕ Add Full Geothermal Quote
                     </button>
                 </div>
+
+                <div class="section gas-section compact-section">
+                    <h2>🔥 Natural Gas + AC</h2>
+                    <div style="background: #fff8e1; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 12px;">
+                        <strong>Traditional System:</strong> High-efficiency furnace for heat + standard central AC unit for cooling.
+                    </div>
+                    
+                    <div id="naturalGasVendors">
+                        </div>
+                    
+                    <button class="add-vendor-btn" onclick="addNaturalGasVendor()">
+                        ➕ Add Gas + AC Quote
+                    </button>
+                </div>
+
             </div>
 
             <button class="calculate-btn" onclick="calculateAll()">🔄 Calculate Analysis</button>
@@ -275,6 +334,26 @@
                 </table>
             </div>
 
+            <div class="section gas-section">
+                <h2>🔥 Step 4: Natural Gas + AC Analysis</h2>
+                <div class="incremental-highlight" style="border-left-color: #f39c12; background-color: #fff8e1;">
+                    <strong>Conventional Alternative:</strong> Compares a gas furnace system against your best heat pump baseline.
+                </div>
+                <table class="results-table" id="naturalGasTable">
+                    <thead>
+                        <tr>
+                            <th>Gas + AC Option</th>
+                            <th>Extra Investment</th>
+                            <th>Tax Credit</th>
+                            <th>Net Extra Cost</th>
+                            <th>Extra Annual Savings</th>
+                            <th>Simple Payback</th>
+                        </tr>
+                    </thead>
+                    <tbody id="naturalGasBody"></tbody>
+                </table>
+            </div>
+
             <div class="section">
                 <h2>💰 Net Present Value Analysis</h2>
                 <div style="margin-bottom: 15px; color: #666; font-size: 14px;">
@@ -310,6 +389,12 @@
                     <h3>Best Full Geothermal</h3>
                     <div class="value" id="bestGeo">-</div>
                 </div>
+
+                <div class="summary-card gas-card">
+                    <h3>Best Gas + AC</h3>
+                    <div class="value" id="bestGas">-</div>
+                </div>
+
                 <div class="summary-card">
                     <h3>Overall Recommendation</h3>
                     <div class="value" id="recommendation">-</div>

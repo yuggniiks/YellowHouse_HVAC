@@ -3,9 +3,11 @@
 let heatPumpCounter = 0;
 let hybridCounter = 0;
 let geothermalCounter = 0;
+let naturalGasCounter = 0;
 let selectedBaselineName = null; // Global state for the baseline
 let userCheckboxStates = {};     // Stores the user's toggle choices
 let isInitialLoad = true;        // Flag for the first chart render
+
 
 function getVal(id) {
     const element = document.getElementById(id);
@@ -59,6 +61,17 @@ function createVendorHTML(type, id, name, cost, rating1, rating2) {
             rating2Id = `geoCOP${id}`;
             rating1Help = 'Geo Cooling (EER)';
             rating2Help = 'Geo Heating (COP)';
+            break;
+
+        case 'gas':
+            typeLabel = 'Natural Gas + AC';
+            typeColor = '#f39c12'; // A nice orange color for gas
+            rating1Label = 'Furnace AFUE (%)';
+            rating2Label = 'AC SEER2 Rating';
+            rating1Id = `gasAFUE${id}`;
+            rating2Id = `gasSEER${id}`;
+            rating1Help = 'Furnace heating efficiency';
+            rating2Help = 'AC cooling efficiency';
             break;
     }
 
@@ -119,6 +132,15 @@ function addGeothermalVendor() {
     calculateAll();
 }
 
+function addNaturalGasVendor() {
+    naturalGasCounter++;
+    const container = document.getElementById('naturalGasVendors');
+    // Default values: 96% AFUE furnace and a 16 SEER2 AC
+    const vendorHTML = createVendorHTML('gas', naturalGasCounter, `Gas Option ${naturalGasCounter}`, 8000, 96, 16);
+    container.insertAdjacentHTML('beforeend', vendorHTML);
+    calculateAll();
+}
+
 function removeVendor(type, id) {
     const vendorElement = document.getElementById(`${type}Vendor${id}`);
     if (vendorElement) {
@@ -134,14 +156,17 @@ function initializeVendors() {
     const heatPumpContainer = document.getElementById('heatPumpVendors');
     const hybridContainer = document.getElementById('hybridVendors');
     const geothermalContainer = document.getElementById('geothermalVendors');
+    const naturalGasContainer = document.getElementById('naturalGasVendors');
 
     heatPumpContainer.innerHTML = '';
     hybridContainer.innerHTML = '';
     geothermalContainer.innerHTML = '';
+    naturalGasContainer.innerHTML = '';
 
     heatPumpCounter = 0;
     hybridCounter = 0;
     geothermalCounter = 0;
+    naturalGasCounter = 0;
     selectedBaselineName = null;
 }
 
@@ -219,47 +244,77 @@ function getGeothermalOptions() {
     return options;
 }
 
+function getNaturalGasOptions() {
+    const options = [];
+    // Assuming gas maintenance is similar to heat pump maintenance
+    const gasMaintenance = getVal('gasMaintenance');
+    for (let i = 1; i <= naturalGasCounter; i++) {
+        const element = document.getElementById(`gasVendor${i}`);
+        if (element) {
+            options.push({
+                id: i,
+                name: getText(`gasName${i}`),
+                cost: getVal(`gasCost${i}`),
+                afue: getVal(`gasAFUE${i}`), // Furnace AFUE
+                seer: getVal(`gasSEER${i}`),  // AC SEER2
+                maintenance: gasMaintenance,
+                type: 'GAS'
+            });
+        }
+    }
+    return options;
+}
 
-function calculateNewEnergyCost(newSEER, newHSPF, type) {
+function calculateNewEnergyCost(option) {
     const currentEnergyCost = getVal('currentAnnualCost');
+
+    // Handle Natural Gas + AC systems separately
+    if (option.type === 'GAS') {
+        const naturalGasPrice = getVal('naturalGasPrice');
+        const annualHeatingLoad = getVal('annualHeatingLoad'); // in therms
+        const electricityRate = getVal('electricityRate');
+        
+        // Assume cooling is ~60% of the original electric bill for load estimation
+        const coolingLoadKwh = (currentEnergyCost * 0.6) / getVal('electricityRate');
+
+        // Cost to heat with gas furnace
+        const heatingCost = (annualHeatingLoad / (option.afue / 100)) * naturalGasPrice;
+
+        // Cost to cool with new AC unit
+        const coolingCost = (coolingLoadKwh / option.seer) * electricityRate;
+
+        return heatingCost + coolingCost;
+    }
+    
+    // Existing logic for electric systems (HP, Hybrid, Geo)
     const currentSEER = getVal('currentSEER');
     const currentHSPF = getVal('currentHSPF');
-
     let effectiveSEER, effectiveHSPF;
 
-    if (type === 'HP') {
+    if (option.type === 'HP' || option.type === 'HYBRID') {
         const downstairsSEER = 14.5;
         const downstairsHSPF = 8.35;
-        effectiveSEER = (0.65 * newSEER) + (0.35 * downstairsSEER);
-        effectiveHSPF = (0.65 * newHSPF) + (0.35 * downstairsHSPF);
-    } else if (type === 'HYBRID') {
-        const downstairsSEER = 14.5;
-        const downstairsHSPF = 8.35;
-        effectiveSEER = (0.65 * newSEER) + (0.35 * downstairsSEER);
-        effectiveHSPF = (0.65 * newHSPF) + (0.35 * downstairsHSPF);
-    } else {
-        effectiveSEER = newSEER;
-        effectiveHSPF = newHSPF;
+        effectiveSEER = (0.65 * option.seer) + (0.35 * downstairsSEER);
+        effectiveHSPF = (0.65 * option.hspf) + (0.35 * downstairsHSPF);
+    } else { // Full Geothermal
+        effectiveSEER = option.seer;
+        effectiveHSPF = option.hspf;
     }
 
     const seerImprovement = (currentSEER > 0) ? effectiveSEER / currentSEER : 1;
     const hspfImprovement = (currentHSPF > 0) ? effectiveHSPF / currentHSPF : 1;
 
     const overallEfficiencyFactor = (0.6 * seerImprovement) + (0.4 * hspfImprovement);
-
     let newEnergyCost = (overallEfficiencyFactor > 0) ? currentEnergyCost / overallEfficiencyFactor : currentEnergyCost;
 
-    if (type === 'HP') { // REMOVED: || type === 'HYBRID'
+    if (option.type === 'HP') {
         const emergencyHeatDays = getVal('emergencyHeatDays');
         const emergencyHeatCost = getVal('emergencyHeatCost');
         const hotDayPenalty = getVal('hotDayPenalty') / 100;
         const hotDaysPerYear = getVal('hotDaysPerYear');
-
-        const weatherFactor = (type === 'HP') ? 1.0 : 0.35;
-
+        const weatherFactor = 1.0;
         const winterPenalty = emergencyHeatDays * emergencyHeatCost * weatherFactor;
         const summerPenalty = (currentEnergyCost * 0.6) * hotDayPenalty * (hotDaysPerYear / 120) * weatherFactor;
-
         newEnergyCost += winterPenalty + summerPenalty;
     }
 
@@ -282,12 +337,14 @@ function calculateAll() {
     const baselineBody = document.getElementById('baselineBody');
     const hybridBody = document.getElementById('hybridBody');
     const upgradeBody = document.getElementById('upgradeBody');
+    const naturalGasBody = document.getElementById('naturalGasBody'); 
     const npvBody = document.getElementById('npvBody');
     const debugOutput = document.getElementById('debugOutput');
 
     baselineBody.innerHTML = '';
     hybridBody.innerHTML = '';
     upgradeBody.innerHTML = '';
+    naturalGasBody.innerHTML = '';
     npvBody.innerHTML = '';
 
     let debugText = `Current total annual cost (broken system): ${currentTotalCost.toLocaleString()}<br>`;
@@ -296,13 +353,14 @@ function calculateAll() {
     const heatPumpResults = [];
     const hybridResults = [];
     const geothermalResults = [];
+    const naturalGasResults = [];
 
     debugText += `<strong>=== BASELINE HEAT PUMP OPTIONS ===</strong><br>`;
     const heatPumpOptions = getHeatPumpOptions();
 
     heatPumpOptions.forEach(option => {
         if (option.cost > 0 && option.name.trim()) {
-            const newEnergyCost = calculateNewEnergyCost(option.seer, option.hspf, option.type);
+            const newEnergyCost = calculateNewEnergyCost(option);
             const totalNewAnnualCost = newEnergyCost + option.maintenance;
             const annualSavings = currentTotalCost - totalNewAnnualCost;
 
@@ -328,9 +386,15 @@ function calculateAll() {
 
     // New Baseline Selection Logic
     if (!selectedBaselineName || !heatPumpResults.some(hp => hp.name === selectedBaselineName)) {
-        const bestOptionForBaseline = heatPumpResults.reduce((best, current) =>
-            current.totalAnnualCost < best.totalAnnualCost ? current : best
-        );
+        const bestOptionForBaseline = heatPumpResults.reduce((best, current) => {
+            if (current.totalAnnualCost < best.totalAnnualCost) {
+                return current;
+            }
+            if (current.totalAnnualCost === best.totalAnnualCost) {
+                return current.cost < best.cost ? current : best;
+            }
+            return best;
+        });
         selectedBaselineName = bestOptionForBaseline.name;
     }
 
@@ -340,9 +404,9 @@ function calculateAll() {
     debugText += `<br><strong>Active Heat Pump Baseline:</strong> ${bestHeatPump.name} with ${bestHeatPump.totalAnnualCost.toFixed(0)} annual cost<br><br>`;
 
     const calculateUpgradeMetrics = (option) => {
-        const taxCredit = (option.type !== 'HP') ? option.cost * taxCreditRate : 0;
+        const taxCredit = (option.type === 'HYBRID' || option.type === 'GEO') ? option.cost * taxCreditRate : 0;
         const netCost = option.cost - taxCredit;
-        const newEnergyCost = calculateNewEnergyCost(option.seer, option.hspf, option.type);
+        const newEnergyCost = calculateNewEnergyCost(option);
         const totalNewAnnualCost = newEnergyCost + option.maintenance;
 
         const extraInvestment = option.cost - bestHeatPump.cost;
@@ -355,6 +419,7 @@ function calculateAll() {
 
         const heatPumpLifespan = getVal('heatPumpLifespan');
         const geothermalLifespan = getVal('geothermalLifespan');
+        const gasLifespan = getVal('gasLifespan');
         let cumulativeNPV = -netExtraInvestment;
         const npvAtIntervals = {};
 
@@ -365,6 +430,12 @@ function calculateAll() {
 
             if (year === geothermalLifespan && (option.type === 'HYBRID' || option.type === 'GEO')) {
                 const replacementCost = option.cost * 0.7;
+                const inflatedReplacementCost = replacementCost * Math.pow(1 + inflationRate, year - 1);
+                cumulativeNPV -= inflatedReplacementCost / Math.pow(1 + discountRate, year);
+            }
+
+            if (year === gasLifespan && option.type === 'GAS') {
+                const replacementCost = getVal('gasReplacementCost'); 
                 const inflatedReplacementCost = replacementCost * Math.pow(1 + inflationRate, year - 1);
                 cumulativeNPV -= inflatedReplacementCost / Math.pow(1 + discountRate, year);
             }
@@ -417,6 +488,14 @@ function calculateAll() {
         }
     });
 
+    debugText += `<br><strong>=== NATURAL GAS + AC OPTIONS ===</strong><br>`;
+    const naturalGasOptions = getNaturalGasOptions();
+    naturalGasOptions.forEach(option => {
+        if (option.cost > 0 && option.name.trim()) {
+            naturalGasResults.push(calculateUpgradeMetrics(option));
+        }
+    });
+
     debugOutput.innerHTML = debugText;
 
     const formatCurrency = (val) => val.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
@@ -461,13 +540,25 @@ function calculateAll() {
 
     populateUpgradeTable(hybridBody, hybridResults);
     populateUpgradeTable(upgradeBody, geothermalResults);
+    populateUpgradeTable(naturalGasBody, naturalGasResults);
 
-    [...hybridResults, ...geothermalResults].forEach((result) => {
+// This now includes naturalGasResults in the loop
+    [...hybridResults, ...geothermalResults, ...naturalGasResults].forEach((result) => {
         const row = npvBody.insertRow();
-        const type = hybridResults.includes(result) ? 'Hybrid' : 'Full Geothermal';
+        
+        // This logic correctly labels each option type
+        let typeLabel;
+        if (hybridResults.includes(result)) {
+            typeLabel = 'Hybrid';
+        } else if (geothermalResults.includes(result)) {
+            typeLabel = 'Full Geothermal';
+        } else {
+            typeLabel = 'Gas + AC';
+        }
+
         row.innerHTML = `
             <td data-label="Option"><strong>${result.name}</strong></td>
-            <td data-label="Type">${type}</td>
+            <td data-label="Type">${typeLabel}</td>
             <td data-label="Net Investment">${formatCurrency(result.netExtraInvestment)}</td>
             <td data-label="5 Year NPV">${formatNPV(result.npv5yr)}</td>
             <td data-label="10 Year NPV">${formatNPV(result.npv10yr)}</td>
@@ -478,6 +569,13 @@ function calculateAll() {
 
     let bestHybrid = null;
     let bestGeo = null;
+    let bestGas = null;
+
+    if (naturalGasResults.length > 0) {
+        bestGas = naturalGasResults.reduce((best, current) =>
+            current.npv20yr > best.npv20yr ? current : best
+        );
+    }
 
     if (hybridResults.length > 0) {
         bestHybrid = hybridResults.reduce((best, current) =>
@@ -501,18 +599,34 @@ function calculateAll() {
 
     if (bestGeo && bestGeo.npv20yr > bestOverallNPV) {
         recommendation = bestGeo.name;
+        bestOverallNPV = bestGeo.npv20yr;
     }
 
-    const winningHeatPump = heatPumpResults.reduce((best, current) =>
-        (current.totalAnnualCost < best.totalAnnualCost ? current : best)
-    );
+    if (bestGas && bestGas.npv20yr > bestOverallNPV) {
+        recommendation = bestGas.name;
+    }
+
+    // This corrected logic finds the best heat pump by total annual cost,
+    // using the initial installation cost as a tie-breaker.
+    const winningHeatPump = heatPumpResults.reduce((best, current) => {
+        if (current.totalAnnualCost < best.totalAnnualCost) {
+            return current;
+        }
+        // If annual costs are the same, pick the one with the lower upfront cost
+        if (current.totalAnnualCost === best.totalAnnualCost) {
+            return current.cost < best.cost ? current : best;
+        }
+        return best;
+    });
 
     document.getElementById('bestHeatPump').textContent = winningHeatPump.name;
+    
     document.getElementById('bestHybrid').textContent = bestHybrid ? bestHybrid.name : 'N/A';
     document.getElementById('bestGeo').textContent = bestGeo ? bestGeo.name : 'N/A';
+    document.getElementById('bestGas').textContent = bestGas ? bestGas.name : 'N/A';
     document.getElementById('recommendation').textContent = recommendation;
 
-    generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults, recommendation);
+    generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults, naturalGasResults, recommendation);
 }
 
 
@@ -567,7 +681,7 @@ function createInteractiveLegend(projectionData, chartUpdater, recommendedName) 
 }
 
 
-function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults, recommendedName) {
+function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults, naturalGasResults, recommendedName) {
     const canvas = document.getElementById('costProjectionChart');
     if (!canvas) return;
 
@@ -590,7 +704,7 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
     const inflationRate = getVal('inflationRate') / 100;
     const years = 30;
 
-    const allOptions = [...heatPumpResults, ...hybridResults, ...geothermalResults];
+    const allOptions = [...heatPumpResults, ...hybridResults, ...geothermalResults, ...naturalGasResults];
     const projectionData = [];
 
     allOptions.forEach((option, index) => {
@@ -605,6 +719,7 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
 
             const heatPumpLifespan = getVal('heatPumpLifespan');
             const geothermalLifespan = getVal('geothermalLifespan');
+            const gasLifespan = getVal('gasLifespan');
             let replacementCost = 0;
 
             if (option.type === 'HP' && year > 0 && year % heatPumpLifespan === 0) {
@@ -612,6 +727,8 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             } else if ((option.type === 'HYBRID' || option.type === 'GEO') && year > 0 && year % geothermalLifespan === 0) {
                 const futureReplacementCost = getVal('geoReplacementCost');
                 replacementCost = futureReplacementCost * Math.pow(1 + inflationRate, year);
+            } else if (option.type === 'GAS' && year > 0 && year % gasLifespan === 0) {
+                replacementCost = getVal('gasReplacementCost') * Math.pow(1 + inflationRate, year);
             }
             
             if (replacementCost > 0) {
@@ -627,7 +744,8 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             uniqueId: `option-${index}`,
             color: option.type === 'HP' ? 'hsl(' + (210 + (heatPumpResults.indexOf(option) * 30)) + ', 70%, 50%)' :
                 option.type === 'HYBRID' ? 'hsl(' + (270 + (hybridResults.indexOf(option) * 30)) + ', 70%, 50%)' :
-                'hsl(' + (120 + (geothermalResults.indexOf(option) * 40)) + ', 70%, 45%)'
+                option.type === 'GAS' ? 'hsl(' + (40 + (naturalGasResults.indexOf(option) * 20)) + ', 90%, 55%)' : // Gas Color
+                'hsl(' + (120 + (geothermalResults.indexOf(option) * 40)) + ', 70%, 45%)' // Geo Color
         });
     });
 
@@ -889,15 +1007,18 @@ Geothermal,My Full Geothermal Quote,50000,22,5.0`;
 
 function loadExampleData() {
     const exampleData = `Type,Name,Cost,Rating1,Rating2
-HeatPump,Heat Pump Vendor-1,15401,14.5,7.8
-HeatPump,Heat Pump Vendor-2,9500,15.2,8.5
-HeatPump,Heat Pump Vendor-3,20000,20,10
+HeatPump,Heat Pump Haller,15401,15,8
+HeatPump,Heat Pump GreinerBros,9500,15,8
+HeatPump,Heat Pump AC Rimmer_ESTIMATE,13000,15,8
 
-Hybrid,Hybrid Geo-Vendor-1,37500,21.0,4.6
-Hybrid,Hybrid Geo-Vendor-2,34882,21,4.6
+Hybrid,Hybrid Geo-Haller,39000,25.0,4.6
+Hybrid,Hybrid Geo-Morrison,36882,25,4.6
 
-Geothermal,Full Geo Vendor-1,60000,22.0,5
-Geothermal,Full Geo Vendor-2,51952,22.0,5`;
+Geothermal,Full Geo Haller,60000,25.0,5
+Geothermal,Full Geo Morrison,55000,25.0,5
+Geothermal,Full Geo Mid-Atlantic,50000,27.0,5
+
+Gas,ESTIMATE_High-End Gas + AC,25000,80,15`;
 
     try {
         parseVendorData(exampleData);
@@ -933,7 +1054,7 @@ function parseVendorData(text) {
 
         initializeVendors();
 
-        let hpCount = 0, hybridCount = 0, geoCount = 0;
+        let hpCount = 0, hybridCount = 0, geoCount = 0, gasCount = 0;
         let validRows = 0;
 
         dataLines.forEach((line, index) => {
@@ -967,6 +1088,9 @@ function parseVendorData(text) {
             } else if (typeLower.includes('geo')) {
                 geoCount++;
                 addVendorFromData('geo', geoCount, name, costNum, r1Num, r2Num);
+            } else if (typeLower.includes('gas')) { // ADD THIS BLOCK
+                gasCount++;
+                addVendorFromData('gas', gasCount, name, costNum, r1Num, r2Num);
             } else {
                 console.warn(`Line ${index + 2}: Unknown type "${type}"`);
             }
@@ -982,16 +1106,28 @@ function parseVendorData(text) {
 }
 
 function addVendorFromData(type, id, name, cost, r1, r2) {
+    // This object tells the function which div to put the vendor card into.
     const containers = {
-        'hp': 'heatPumpVendors', 'hybrid': 'hybridVendors', 'geo': 'geothermalVendors'
+        'hp': 'heatPumpVendors',
+        'hybrid': 'hybridVendors',
+        'geo': 'geothermalVendors',
+        'gas': 'naturalGasVendors' // This was the missing entry
     };
+    
+    // This finds the correct container (e.g., 'naturalGasVendors')
     const container = document.getElementById(containers[type]);
-    const vendorHTML = createVendorHTML(type, id, name, cost, r1, r2);
-    container.insertAdjacentHTML('beforeend', vendorHTML);
+    
+    // If a container is found, add the HTML for the vendor card
+    if (container) {
+        const vendorHTML = createVendorHTML(type, id, name, cost, r1, r2);
+        container.insertAdjacentHTML('beforeend', vendorHTML);
+    }
 
+    // This part ensures the counters stay in sync when loading from a file
     if (type === 'hp') heatPumpCounter = Math.max(heatPumpCounter, id);
     else if (type === 'hybrid') hybridCounter = Math.max(hybridCounter, id);
-    else geothermalCounter = Math.max(geothermalCounter, id);
+    else if (type === 'geo') geothermalCounter = Math.max(geothermalCounter, id);
+    else if (type === 'gas') naturalGasCounter = Math.max(naturalGasCounter, id);
 }
 
 function exportData() {
