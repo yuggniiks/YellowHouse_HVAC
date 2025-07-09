@@ -1009,16 +1009,16 @@ function loadExampleData() {
     const exampleData = `Type,Name,Cost,Rating1,Rating2
 HeatPump,Heat Pump Haller,15401,15,8
 HeatPump,Heat Pump GreinerBros,9500,15,8
-HeatPump,Heat Pump AC Rimmer_ESTIMATE,13000,15,8
+HeatPump,Heat Pump AC Rimmer_ESTIMATE,13000,20,10
 
-Hybrid,Hybrid Geo-Haller,39000,25.0,4.6
-Hybrid,Hybrid Geo-Morrison,36882,25,4.6
+Hybrid,Hybrid Geo-Haller,39000,22.0,4
+Hybrid,Hybrid Geo-Morrison,36882,22,4
 
-Geothermal,Full Geo Haller,60000,25.0,5
-Geothermal,Full Geo Morrison,55000,25.0,5
-Geothermal,Full Geo Mid-Atlantic,50000,27.0,5
+Geothermal,Full Geo Haller,60000,27.0,5
+Geothermal,Full Geo Morrison,55000,27.0,5
+Geothermal,Full Geo Mid-Atlantic,51000,27.0,5
 
-Gas,ESTIMATE_High-End Gas + AC,25000,80,15`;
+Gas,ESTIMATE_High-End Gas + AC,27000,80,15`;
 
     try {
         parseVendorData(exampleData);
