@@ -1139,7 +1139,7 @@ Geothermal,Full Geo Haller,60000,27.0,5
 Geothermal,Full Geo Morrison,55000,27.0,5
 Geothermal,Full Geo Mid-Atlantic,51000,27.0,5
 
-Gas,ESTIMATE_High-End Gas + AC,30987,96,15`;
+Gas,AC Rimmer Gas + AC,30987,96,15`;
 
     try {
         parseVendorData(exampleData);
