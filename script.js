@@ -265,22 +265,18 @@ function getNaturalGasOptions() {
     return options;
 }
 
-function calculateNewEnergyCost(option) {
+function calculateNewEnergyCost(option, year = 0) {
     const currentEnergyCost = getVal('currentAnnualCost');
+    const heatPumpLifespan = getVal('heatPumpLifespan');
 
     // Handle Natural Gas + AC systems separately
     if (option.type === 'GAS') {
         const naturalGasPrice = getVal('naturalGasPrice');
-        const annualHeatingLoad = getVal('annualHeatingLoad'); // in therms
+        const annualHeatingLoad = getVal('annualHeatingLoad');
         const electricityRate = getVal('electricityRate');
         
-        // Assume cooling is ~60% of the original electric bill for load estimation
         const coolingLoadKwh = (currentEnergyCost * 0.6) / getVal('electricityRate');
-
-        // Cost to heat with gas furnace
         const heatingCost = (annualHeatingLoad / (option.afue / 100)) * naturalGasPrice;
-
-        // Cost to cool with new AC unit
         const coolingCost = (coolingLoadKwh / option.seer) * electricityRate;
 
         return heatingCost + coolingCost;
@@ -291,11 +287,24 @@ function calculateNewEnergyCost(option) {
     const currentHSPF = getVal('currentHSPF');
     let effectiveSEER, effectiveHSPF;
 
-    if (option.type === 'HP' || option.type === 'HYBRID') {
+    if (option.type === 'HP') {
         const downstairsSEER = 14.5;
         const downstairsHSPF = 8.35;
         effectiveSEER = (0.65 * option.seer) + (0.35 * downstairsSEER);
         effectiveHSPF = (0.65 * option.hspf) + (0.35 * downstairsHSPF);
+    } else if (option.type === 'HYBRID') {
+        // Hybrid conversion logic: after heat pump lifespan, becomes full geo
+        if (year >= heatPumpLifespan) {
+            // After conversion: full geothermal efficiency
+            effectiveSEER = option.seer;
+            effectiveHSPF = option.hspf;
+        } else {
+            // Before conversion: mixed efficiency (geo upstairs, HP downstairs)
+            const downstairsSEER = 14.5;
+            const downstairsHSPF = 8.35;
+            effectiveSEER = (0.65 * option.seer) + (0.35 * downstairsSEER);
+            effectiveHSPF = (0.65 * option.hspf) + (0.35 * downstairsHSPF);
+        }
     } else { // Full Geothermal
         effectiveSEER = option.seer;
         effectiveHSPF = option.hspf;
@@ -320,7 +329,6 @@ function calculateNewEnergyCost(option) {
 
     return newEnergyCost;
 }
-
 function calculateAll() {
     const calcButton = document.querySelector('.calculate-btn');
     if (calcButton) {
@@ -406,7 +414,7 @@ function calculateAll() {
     const calculateUpgradeMetrics = (option) => {
         const taxCredit = (option.type === 'HYBRID' || option.type === 'GEO') ? option.cost * taxCreditRate : 0;
         const netCost = option.cost - taxCredit;
-        const newEnergyCost = calculateNewEnergyCost(option);
+        const newEnergyCost = calculateNewEnergyCost(option, 0); // Initial energy cost
         const totalNewAnnualCost = newEnergyCost + option.maintenance;
 
         const extraInvestment = option.cost - bestHeatPump.cost;
@@ -420,33 +428,64 @@ function calculateAll() {
         const heatPumpLifespan = getVal('heatPumpLifespan');
         const geothermalLifespan = getVal('geothermalLifespan');
         const gasLifespan = getVal('gasLifespan');
+        const geoUnitOnlyCost = getVal('geoUnitOnlyCost'); // New parameter
+        
         let cumulativeNPV = -netExtraInvestment;
         const npvAtIntervals = {};
 
         for (let year = 1; year <= 30; year++) {
-            const inflatedSavings = extraAnnualSavings * Math.pow(1 + inflationRate, year - 1);
+            // Calculate energy cost for this year (accounts for hybrid conversion)
+            let yearlyEnergyCost, yearlyTotalCost, yearlyExtraSavings;
+            
+            if (option.type === 'HYBRID') {
+                // Hybrid efficiency changes over time
+                yearlyEnergyCost = calculateNewEnergyCost(option, year);
+                yearlyTotalCost = yearlyEnergyCost + option.maintenance;
+                yearlyExtraSavings = bestHeatPump.totalAnnualCost - yearlyTotalCost;
+            } else {
+                // Other systems have constant efficiency
+                yearlyExtraSavings = extraAnnualSavings;
+            }
+            
+            const inflatedSavings = yearlyExtraSavings * Math.pow(1 + inflationRate, year - 1);
             const presentValue = inflatedSavings / Math.pow(1 + discountRate, year);
             cumulativeNPV += presentValue;
 
-            if (year === geothermalLifespan && (option.type === 'HYBRID' || option.type === 'GEO')) {
-                const replacementCost = option.cost * 0.7;
-                const inflatedReplacementCost = replacementCost * Math.pow(1 + inflationRate, year - 1);
-                cumulativeNPV -= inflatedReplacementCost / Math.pow(1 + discountRate, year);
+            // Handle replacement costs
+            if (option.type === 'HYBRID') {
+                // Hybrid conversion: at heat pump lifespan, add geothermal unit cost
+                if (year === heatPumpLifespan) {
+                    const conversionCost = geoUnitOnlyCost * Math.pow(1 + inflationRate, year - 1);
+                    cumulativeNPV -= conversionCost / Math.pow(1 + discountRate, year);
+                    debugText += `  → Year ${year}: Hybrid conversion cost ${conversionCost.toLocaleString()}<br>`;
+                }
+                // Original upstairs geo unit replacement
+                if (year === geothermalLifespan) {
+                    const replacementCost = getVal('geoReplacementCost') * Math.pow(1 + inflationRate, year - 1);
+                    cumulativeNPV -= replacementCost / Math.pow(1 + discountRate, year);
+                }
+                // Downstairs geo unit replacement (added at year 18, needs replacement at 18+25=43)
+                if (year === heatPumpLifespan + geothermalLifespan) {
+                    const replacementCost = getVal('geoReplacementCost') * Math.pow(1 + inflationRate, year - 1);
+                    cumulativeNPV -= replacementCost / Math.pow(1 + discountRate, year);
+                }
+            } else if (option.type === 'GEO') {
+                // Full geothermal replacement
+                if (year === geothermalLifespan) {
+                    const replacementCost = getVal('geoReplacementCost') * Math.pow(1 + inflationRate, year - 1);
+                    cumulativeNPV -= replacementCost / Math.pow(1 + discountRate, year);
+                }
+            } else if (option.type === 'GAS') {
+                // Gas system replacement
+                if (year === gasLifespan) {
+                    const replacementCost = getVal('gasReplacementCost') * Math.pow(1 + inflationRate, year - 1);
+                    cumulativeNPV -= replacementCost / Math.pow(1 + discountRate, year);
+                }
             }
 
-            if (year === gasLifespan && option.type === 'GAS') {
-                const replacementCost = getVal('gasReplacementCost'); 
-                const inflatedReplacementCost = replacementCost * Math.pow(1 + inflationRate, year - 1);
-                cumulativeNPV -= inflatedReplacementCost / Math.pow(1 + discountRate, year);
-            }
-
-            if (year === heatPumpLifespan) {
+            // Baseline heat pump replacements (credit back to upgrade options)
+            if (year === heatPumpLifespan || year === heatPumpLifespan * 2) {
                 const baselineReplacementCost = bestHeatPump.cost * Math.pow(1 + inflationRate, year - 1);
-                cumulativeNPV += baselineReplacementCost / Math.pow(1 + discountRate, year);
-            }
-
-            if (year === heatPumpLifespan * 2) {
-                    const baselineReplacementCost = bestHeatPump.cost * Math.pow(1 + inflationRate, year - 1);
                 cumulativeNPV += baselineReplacementCost / Math.pow(1 + discountRate, year);
             }
 
@@ -755,19 +794,47 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         let cumulativeCost = (option.type === 'HP') ? option.cost : option.netCost;
         yearlyData.push({ year: 0, cost: cumulativeCost });
 
+        const heatPumpLifespan = getVal('heatPumpLifespan');
+        const geothermalLifespan = getVal('geothermalLifespan');
+        const gasLifespan = getVal('gasLifespan');
+        const geoUnitOnlyCost = getVal('geoUnitOnlyCost');
+
         for (let year = 1; year <= years; year++) {
-            const inflatedAnnualCost = option.totalAnnualCost * Math.pow(1 + inflationRate, year - 1);
+            // Calculate annual cost for this year (accounts for efficiency changes)
+            let annualEnergyCost, annualTotalCost;
+            
+            if (option.type === 'HYBRID') {
+                // Hybrid efficiency improves after conversion at heat pump lifespan
+                annualEnergyCost = calculateNewEnergyCost(option, year);
+                annualTotalCost = annualEnergyCost + option.maintenance;
+            } else {
+                // Other systems have constant efficiency
+                annualTotalCost = option.totalAnnualCost;
+            }
+            
+            const inflatedAnnualCost = annualTotalCost * Math.pow(1 + inflationRate, year - 1);
             cumulativeCost += inflatedAnnualCost;
             yearlyData.push({ year: year, cost: cumulativeCost });
 
-            const heatPumpLifespan = getVal('heatPumpLifespan');
-            const geothermalLifespan = getVal('geothermalLifespan');
-            const gasLifespan = getVal('gasLifespan');
+            // Handle replacement costs
             let replacementCost = 0;
 
             if (option.type === 'HP' && year > 0 && year % heatPumpLifespan === 0) {
                 replacementCost = option.cost * Math.pow(1 + inflationRate, year);
-            } else if ((option.type === 'HYBRID' || option.type === 'GEO') && year > 0 && year % geothermalLifespan === 0) {
+            } else if (option.type === 'HYBRID') {
+                // Hybrid conversion at heat pump lifespan
+                if (year === heatPumpLifespan) {
+                    replacementCost = geoUnitOnlyCost * Math.pow(1 + inflationRate, year);
+                }
+                // Original upstairs geo unit replacement
+                if (year === geothermalLifespan) {
+                    replacementCost += getVal('geoReplacementCost') * Math.pow(1 + inflationRate, year);
+                }
+                // Downstairs geo unit replacement (installed at year heatPumpLifespan)
+                if (year === heatPumpLifespan + geothermalLifespan) {
+                    replacementCost += getVal('geoReplacementCost') * Math.pow(1 + inflationRate, year);
+                }
+            } else if (option.type === 'GEO' && year > 0 && year % geothermalLifespan === 0) {
                 const futureReplacementCost = getVal('geoReplacementCost');
                 replacementCost = futureReplacementCost * Math.pow(1 + inflationRate, year);
             } else if (option.type === 'GAS' && year > 0 && year % gasLifespan === 0) {
@@ -780,8 +847,14 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             }
         }
 
+        // Add efficiency improvement indicator for hybrid systems
+        let optionName = option.name;
+        if (option.type === 'HYBRID') {
+            optionName += ' → Full Geo';
+        }
+
         projectionData.push({
-            name: option.name,
+            name: optionName,
             data: yearlyData,
             type: option.type,
             uniqueId: `option-${index}`,
