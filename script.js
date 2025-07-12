@@ -902,192 +902,231 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         }
     };
 
-    function redrawChart() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        if (heatPumpResults.length === 0) {
-            ctx.fillStyle = '#666';
-            ctx.font = '16px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText('Add vendor options to see cost projection', containerWidth / 2, containerHeight / 2);
-            return;
-        }
+function redrawChart() {
+    // Get current canvas dimensions
+    const rect = canvas.getBoundingClientRect();
+    const containerWidth = rect.width;
+    const containerHeight = rect.height;
+    
+    // Properly clear the entire canvas using actual canvas dimensions
+    ctx.clearRect(-1, -1, containerWidth + 2, containerHeight + 2);
+    
+    // Reset all canvas context properties to default state
+    ctx.save(); // Save current state
+    
+    // Reset line styles and properties
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#000';
+    ctx.fillStyle = '#000';
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    ctx.lineCap = 'butt';
+    ctx.lineJoin = 'miter';
+    
+    if (heatPumpResults.length === 0) {
+        ctx.fillStyle = '#666';
+        ctx.font = '16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Add vendor options to see cost projection', containerWidth / 2, containerHeight / 2);
+        ctx.restore();
+        return;
+    }
 
-        const visibleOptions = projectionData.filter(option => {
-            const checkbox = document.getElementById(`toggle-${option.uniqueId}`);
-            return checkbox ? checkbox.checked : true;
-        });
+    const visibleOptions = projectionData.filter(option => {
+        const checkbox = document.getElementById(`toggle-${option.uniqueId}`);
+        return checkbox ? checkbox.checked : true;
+    });
 
-        if (visibleOptions.length === 0) return;
+    if (visibleOptions.length === 0) {
+        ctx.restore();
+        return;
+    }
 
-        const maxCost = Math.max(...visibleOptions.flatMap(p => p.data.map(d => d.cost)));
-        const maxYear = years;
-        const margin = { top: 40, right: 30, bottom: 80, left: 70 };
-        const chartWidth = containerWidth - margin.left - margin.right;
-        const chartHeight = containerHeight - margin.top - margin.bottom;
-        const xScale = (year) => margin.left + (year / maxYear) * chartWidth;
-        const yScale = (cost) => margin.top + chartHeight - (cost / maxCost) * chartHeight;
-        
-        // Light grid lines
-        ctx.lineWidth = 0.5;
-        ctx.strokeStyle = '#f0f0f0';
-        for (let year = 1; year <= maxYear; year++) {
-            if (year % 5 !== 0) {
-                const x = xScale(year);
-                ctx.beginPath();
-                ctx.moveTo(x, margin.top);
-                ctx.lineTo(x, margin.top + chartHeight);
-                ctx.stroke();
-            }
-        }
-        for (let cost = 10000; cost < maxCost; cost += 10000) {
-            const y = yScale(cost);
-            ctx.beginPath();
-            ctx.moveTo(margin.left, y);
-            ctx.lineTo(margin.left + chartWidth, y);
-            ctx.stroke();
-        }
-
-        // Major grid lines
-        const costStep = Math.ceil(maxCost / 8 / 10000) * 10000;
-        ctx.strokeStyle = '#e0e0e0';
-        for (let year = 5; year <= maxYear; year += 5) {
+    const maxCost = Math.max(...visibleOptions.flatMap(p => p.data.map(d => d.cost)));
+    const maxYear = years;
+    const margin = { top: 40, right: 30, bottom: 80, left: 70 };
+    const chartWidth = containerWidth - margin.left - margin.right;
+    const chartHeight = containerHeight - margin.top - margin.bottom;
+    const xScale = (year) => margin.left + (year / maxYear) * chartWidth;
+    const yScale = (cost) => margin.top + chartHeight - (cost / maxCost) * chartHeight;
+    
+    // Light grid lines - reset properties before each draw
+    ctx.lineWidth = 0.5;
+    ctx.strokeStyle = '#f0f0f0';
+    ctx.setLineDash([]);
+    for (let year = 1; year <= maxYear; year++) {
+        if (year % 5 !== 0) {
             const x = xScale(year);
             ctx.beginPath();
             ctx.moveTo(x, margin.top);
             ctx.lineTo(x, margin.top + chartHeight);
             ctx.stroke();
         }
-        for (let cost = costStep; cost <= maxCost; cost += costStep) {
-            const y = yScale(cost);
-            ctx.beginPath();
-            ctx.moveTo(margin.left, y);
-            ctx.lineTo(margin.left + chartWidth, y);
-            ctx.stroke();
-        }
-
-        // Chart borders
-        ctx.strokeStyle = '#333';
-        ctx.lineWidth = 1;
+    }
+    for (let cost = 10000; cost < maxCost; cost += 10000) {
+        const y = yScale(cost);
         ctx.beginPath();
-        ctx.moveTo(margin.left, margin.top + chartHeight);
-        ctx.lineTo(margin.left + chartWidth, margin.top + chartHeight);
+        ctx.moveTo(margin.left, y);
+        ctx.lineTo(margin.left + chartWidth, y);
         ctx.stroke();
+    }
+
+    // Major grid lines
+    const costStep = Math.ceil(maxCost / 8 / 10000) * 10000;
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#e0e0e0';
+    ctx.setLineDash([]);
+    for (let year = 5; year <= maxYear; year += 5) {
+        const x = xScale(year);
         ctx.beginPath();
-        ctx.moveTo(margin.left, margin.top);
-        ctx.lineTo(margin.left, margin.top + chartHeight);
+        ctx.moveTo(x, margin.top);
+        ctx.lineTo(x, margin.top + chartHeight);
         ctx.stroke();
-        
-        // Minor tick marks
-        ctx.strokeStyle = '#aaa'; 
-        ctx.lineWidth = 1;
-        for (let year = 0; year <= maxYear; year++) {
-            if (year % 5 !== 0) { 
-                const x = xScale(year);
-                ctx.beginPath();
-                ctx.moveTo(x, margin.top + chartHeight); 
-                ctx.lineTo(x, margin.top + chartHeight + 5); 
-                ctx.stroke();
-            }
-        }
+    }
+    for (let cost = costStep; cost <= maxCost; cost += costStep) {
+        const y = yScale(cost);
+        ctx.beginPath();
+        ctx.moveTo(margin.left, y);
+        ctx.lineTo(margin.left + chartWidth, y);
+        ctx.stroke();
+    }
 
-        // Labels
-        ctx.fillStyle = '#333';
-        ctx.font = '11px Segoe UI';
-        ctx.textAlign = 'center';
-        for (let year = 0; year <= maxYear; year += 5) {
-            ctx.font = (year % 10 === 0) ? 'bold 11px Segoe UI' : '11px Segoe UI';
-            ctx.fillText(year.toString(), xScale(year), margin.top + chartHeight + 20);
-        }
-        ctx.textAlign = 'right';
-        for (let cost = costStep; cost <= maxCost; cost += costStep) {
-            if (cost > 0) ctx.fillText('$' + Math.round(cost / 1000) + 'k', margin.left - 8, yScale(cost) + 4);
-        }
-        ctx.font = '12px Segoe UI';
-        ctx.textAlign = 'center';
-        ctx.fillText('Years', margin.left + chartWidth / 2, containerHeight - 45);
-        ctx.save();
-        ctx.translate(30, margin.top + chartHeight / 2);
-        ctx.rotate(-Math.PI / 2);
-        ctx.fillText('Cumulative Total Cost', 0, 0);
-        ctx.restore();
-        ctx.font = 'bold 14px Segoe UI';
-        ctx.textAlign = 'center';
-        ctx.fillText('30-Year Total Cost Projection (Including Replacements & Inflation)', margin.left + chartWidth / 2, 25);
-
-        // Draw data lines
-        visibleOptions.forEach((option) => {
-            ctx.strokeStyle = option.color;
-            ctx.lineWidth = option.type === 'GEO' ? 2.5 : option.type === 'HYBRID' ? 2 : 1.5;
-            if (option.type === 'HP') {
-                ctx.setLineDash([]);
-            } else if (option.type === 'HYBRID') {
-                ctx.setLineDash([10, 4]);
-            } else {
-                ctx.setLineDash([4, 4]);
-            }
+    // Chart borders
+    ctx.strokeStyle = '#333';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(margin.left, margin.top + chartHeight);
+    ctx.lineTo(margin.left + chartWidth, margin.top + chartHeight);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(margin.left, margin.top);
+    ctx.lineTo(margin.left, margin.top + chartHeight);
+    ctx.stroke();
+    
+    // Minor tick marks
+    ctx.strokeStyle = '#aaa'; 
+    ctx.lineWidth = 1;
+    ctx.setLineDash([]);
+    for (let year = 0; year <= maxYear; year++) {
+        if (year % 5 !== 0) { 
+            const x = xScale(year);
             ctx.beginPath();
-            option.data.forEach((point, i) => {
-                const x = xScale(point.year);
-                const y = yScale(point.cost);
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            });
+            ctx.moveTo(x, margin.top + chartHeight); 
+            ctx.lineTo(x, margin.top + chartHeight + 5); 
             ctx.stroke();
-            ctx.setLineDash([]);
-        });
-
-        // Draw break-even lines
-        if (bestHeatPumpData) {
-            visibleOptions.forEach(option => {
-                if (option.type !== 'HP') {
-                    let breakEvenYear = -1;
-                    for (let year = 1; year <= years; year++) {
-                        const optionCost = getCostForYear(option.data, year);
-                        const baselineCost = getCostForYear(bestHeatPumpData.data, year);
-                        if (optionCost !== undefined && baselineCost !== undefined && optionCost <= baselineCost) {
-                            breakEvenYear = year;
-                            break;
-                        }
-                    }
-
-                    if (breakEvenYear !== -1) {
-                        const prevYear = breakEvenYear - 1;
-                        const geoCostPrev = getCostForYear(option.data, prevYear);
-                        const hpCostPrev = getCostForYear(bestHeatPumpData.data, prevYear);
-                        const geoCostNow = getCostForYear(option.data, breakEvenYear);
-                        const hpCostNow = getCostForYear(bestHeatPumpData.data, breakEvenYear);
-                        let breakEvenPoint = breakEvenYear;
-
-                        if (geoCostPrev !== undefined && hpCostPrev !== undefined && geoCostNow !== undefined && hpCostNow !== undefined) {
-                            const costDiffPrev = geoCostPrev - hpCostPrev;
-                            const costDiffNow = geoCostNow - hpCostNow;
-                            if (costDiffPrev > 0 && costDiffNow <= 0) {
-                                const totalDiff = costDiffPrev - costDiffNow;
-                                if (totalDiff > 0) {
-                                    breakEvenPoint = prevYear + (costDiffPrev / totalDiff);
-                                }
-                            }
-                        }
-
-                        const x = xScale(breakEvenPoint);
-                        ctx.beginPath();
-                        ctx.moveTo(x, margin.top);
-                        ctx.lineTo(x, margin.top + chartHeight);
-                        ctx.strokeStyle = option.color;
-                        ctx.lineWidth = 1;
-                        ctx.setLineDash([4, 2]);
-                        ctx.stroke();
-                        ctx.setLineDash([]);
-                        ctx.fillStyle = option.color;
-                        ctx.textAlign = 'center';
-                        const labelX = Math.max(margin.left + 50, Math.min(x, margin.left + chartWidth - 50));
-                        ctx.fillText(`Payback: ${option.name}`, labelX, margin.top - 5);
-                    }
-                }
-            });
         }
     }
+
+    // Labels
+    ctx.fillStyle = '#333';
+    ctx.font = '11px Segoe UI';
+    ctx.textAlign = 'center';
+    for (let year = 0; year <= maxYear; year += 5) {
+        ctx.font = (year % 10 === 0) ? 'bold 11px Segoe UI' : '11px Segoe UI';
+        ctx.fillText(year.toString(), xScale(year), margin.top + chartHeight + 20);
+    }
+    ctx.textAlign = 'right';
+    for (let cost = costStep; cost <= maxCost; cost += costStep) {
+        if (cost > 0) ctx.fillText('$' + Math.round(cost / 1000) + 'k', margin.left - 8, yScale(cost) + 4);
+    }
+    ctx.font = '12px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText('Years', margin.left + chartWidth / 2, containerHeight - 45);
+    ctx.save();
+    ctx.translate(30, margin.top + chartHeight / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('Cumulative Total Cost', 0, 0);
+    ctx.restore();
+    ctx.font = 'bold 14px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText('30-Year Total Cost Projection (Including Replacements & Inflation)', margin.left + chartWidth / 2, 25);
+
+    // Draw data lines - explicitly reset properties for each line
+    visibleOptions.forEach((option) => {
+        ctx.beginPath(); // Start fresh path for each line
+        ctx.strokeStyle = option.color;
+        ctx.lineWidth = option.type === 'GEO' ? 2.5 : option.type === 'HYBRID' ? 2 : 1.5;
+        ctx.globalAlpha = 1; // Ensure full opacity
+        
+        // Set line dash pattern
+        if (option.type === 'HP') {
+            ctx.setLineDash([]);
+        } else if (option.type === 'HYBRID') {
+            ctx.setLineDash([10, 4]);
+        } else {
+            ctx.setLineDash([4, 4]);
+        }
+        
+        // Draw the line
+        option.data.forEach((point, i) => {
+            const x = xScale(point.year);
+            const y = yScale(point.cost);
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        });
+        ctx.stroke();
+    });
+
+    // Reset line dash for break-even lines
+    ctx.setLineDash([]);
+
+    // Draw break-even lines
+    if (bestHeatPumpData) {
+        visibleOptions.forEach(option => {
+            if (option.type !== 'HP') {
+                let breakEvenYear = -1;
+                for (let year = 1; year <= years; year++) {
+                    const optionCost = getCostForYear(option.data, year);
+                    const baselineCost = getCostForYear(bestHeatPumpData.data, year);
+                    if (optionCost !== undefined && baselineCost !== undefined && optionCost <= baselineCost) {
+                        breakEvenYear = year;
+                        break;
+                    }
+                }
+
+                if (breakEvenYear !== -1) {
+                    const prevYear = breakEvenYear - 1;
+                    const geoCostPrev = getCostForYear(option.data, prevYear);
+                    const hpCostPrev = getCostForYear(bestHeatPumpData.data, prevYear);
+                    const geoCostNow = getCostForYear(option.data, breakEvenYear);
+                    const hpCostNow = getCostForYear(bestHeatPumpData.data, breakEvenYear);
+                    let breakEvenPoint = breakEvenYear;
+
+                    if (geoCostPrev !== undefined && hpCostPrev !== undefined && geoCostNow !== undefined && hpCostNow !== undefined) {
+                        const costDiffPrev = geoCostPrev - hpCostPrev;
+                        const costDiffNow = geoCostNow - hpCostNow;
+                        if (costDiffPrev > 0 && costDiffNow <= 0) {
+                            const totalDiff = costDiffPrev - costDiffNow;
+                            if (totalDiff > 0) {
+                                breakEvenPoint = prevYear + (costDiffPrev / totalDiff);
+                            }
+                        }
+                    }
+
+                    const x = xScale(breakEvenPoint);
+                    ctx.beginPath();
+                    ctx.moveTo(x, margin.top);
+                    ctx.lineTo(x, margin.top + chartHeight);
+                    ctx.strokeStyle = option.color;
+                    ctx.lineWidth = 1;
+                    ctx.setLineDash([4, 2]);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = option.color;
+                    ctx.textAlign = 'center';
+                    const labelX = Math.max(margin.left + 50, Math.min(x, margin.left + chartWidth - 50));
+                    ctx.fillText(`Payback: ${option.name}`, labelX, margin.top - 5);
+                }
+            }
+        });
+    }
+    
+    ctx.restore(); // Restore original state
+}
 
     createInteractiveLegend(projectionData, handleLegendToggle, recommendedName);
     redrawChart();
@@ -1300,8 +1339,8 @@ function setupResponsiveCanvas(canvas, container) {
     
     // Get the container's actual size
     const rect = container.getBoundingClientRect();
-    const containerWidth = rect.width;
-    const containerHeight = rect.height;
+    const containerWidth = Math.floor(rect.width);
+    const containerHeight = Math.floor(rect.height);
     
     // Set the canvas size in CSS pixels
     canvas.style.width = containerWidth + 'px';
@@ -1314,8 +1353,42 @@ function setupResponsiveCanvas(canvas, container) {
     // Scale the canvas for high DPI displays
     ctx.scale(dpr, dpr);
     
+    // Reset context to default state
+    ctx.lineCap = 'butt';
+    ctx.lineJoin = 'miter';
+    ctx.miterLimit = 10;
+    ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    
     return { width: containerWidth, height: containerHeight };
 }
+
+const handleLegendToggle = (event, toggledOption) => {
+    const checkbox = event.target;
+    userCheckboxStates[toggledOption.name] = checkbox.checked;
+
+    if (toggledOption.type === 'HP') {
+        if (!checkbox.checked) {
+            checkbox.checked = true;
+            userCheckboxStates[toggledOption.name] = true;
+            return;
+        }
+        projectionData.forEach(opt => {
+            if (opt.type === 'HP' && opt.name !== toggledOption.name) {
+                userCheckboxStates[opt.name] = false;
+            }
+        });
+        
+        selectedBaselineName = toggledOption.name;
+        calculateAll();
+    } else {
+        // Debounce the redraw
+        clearTimeout(window.chartRedrawTimeout);
+        window.chartRedrawTimeout = setTimeout(() => {
+            redrawChart();
+        }, 50);
+    }
+};
 
 window.onload = function() {
     setTimeout(() => {
