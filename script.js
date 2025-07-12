@@ -634,52 +634,105 @@ function createInteractiveLegend(projectionData, chartUpdater, recommendedName) 
     const legendContainer = document.getElementById('chartLegend');
     legendContainer.innerHTML = '<h4>Toggle Options</h4>';
 
-    projectionData.forEach(option => {
-        const wrapper = document.createElement('div');
-        wrapper.classList.add('legend-item');
+    // Separate baseline (heat pump) and upgrade options
+    const baselineOptions = projectionData.filter(option => option.type === 'HP');
+    const upgradeOptions = projectionData.filter(option => option.type !== 'HP');
 
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.id = `toggle-${option.uniqueId}`;
-        checkbox.value = option.name;
+    // Create baseline section for heat pumps
+    if (baselineOptions.length > 0) {
+        const baselineSection = document.createElement('div');
+        baselineSection.classList.add('legend-baseline-section');
         
-        if (isInitialLoad) {
-            // On first load, set defaults: baseline + recommendation
-            const defaultOnOptions = [selectedBaselineName];
-            if (selectedBaselineName !== recommendedName) {
-                defaultOnOptions.push(recommendedName);
-            }
-            if (option.type === 'HP') {
+        baselineOptions.forEach(option => {
+            const wrapper = document.createElement('div');
+            wrapper.classList.add('legend-item', 'baseline-item');
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `toggle-${option.uniqueId}`;
+            checkbox.value = option.name;
+            
+            if (isInitialLoad) {
                 checkbox.checked = option.name === selectedBaselineName;
+                userCheckboxStates[option.name] = checkbox.checked;
             } else {
-                checkbox.checked = defaultOnOptions.includes(option.name);
+                checkbox.checked = userCheckboxStates[option.name] || false;
             }
-            // Store this default state
-            userCheckboxStates[option.name] = checkbox.checked;
-        } else {
-            // On subsequent loads, use the stored user state
-            checkbox.checked = userCheckboxStates[option.name] || false;
-        }
+            
+            checkbox.style.accentColor = option.color;
+
+            const label = document.createElement('label');
+            label.htmlFor = checkbox.id;
+            label.textContent = option.name;
+            label.style.borderLeft = `4px solid ${option.color}`;
+
+            wrapper.appendChild(checkbox);
+            wrapper.appendChild(label);
+            baselineSection.appendChild(wrapper);
+
+            checkbox.addEventListener('change', (e) => chartUpdater(e, option));
+        });
         
-        checkbox.style.accentColor = option.color;
+        legendContainer.appendChild(baselineSection);
+    }
 
-        const label = document.createElement('label');
-        label.htmlFor = checkbox.id;
-        label.textContent = option.name;
-        label.style.borderLeft = `4px solid ${option.color}`;
+    // Create upgrades section for non-heat pump options
+    if (upgradeOptions.length > 0) {
+        const upgradesSection = document.createElement('div');
+        upgradesSection.classList.add('legend-upgrades-section');
+        
+        upgradeOptions.forEach(option => {
+            const wrapper = document.createElement('div');
+            wrapper.classList.add('legend-item', 'upgrade-item');
 
-        wrapper.appendChild(checkbox);
-        wrapper.appendChild(label);
-        legendContainer.appendChild(wrapper);
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `toggle-${option.uniqueId}`;
+            checkbox.value = option.name;
+            
+            if (isInitialLoad) {
+                // On first load, show recommendation if it's not a heat pump
+                const defaultOnOptions = [selectedBaselineName];
+                if (selectedBaselineName !== recommendedName) {
+                    defaultOnOptions.push(recommendedName);
+                }
+                checkbox.checked = defaultOnOptions.includes(option.name);
+                userCheckboxStates[option.name] = checkbox.checked;
+            } else {
+                checkbox.checked = userCheckboxStates[option.name] || false;
+            }
+            
+            checkbox.style.accentColor = option.color;
 
-        checkbox.addEventListener('change', (e) => chartUpdater(e, option));
-    });
+            const label = document.createElement('label');
+            label.htmlFor = checkbox.id;
+            
+            // Add type indicator to the label
+            let typeIcon = '';
+            switch(option.type) {
+                case 'HYBRID': typeIcon = '🔄 '; break;
+                case 'GEO': typeIcon = '⚡ '; break;
+                case 'GAS': typeIcon = '🔥 '; break;
+            }
+            
+            label.textContent = typeIcon + option.name;
+            label.style.borderLeft = `4px solid ${option.color}`;
+
+            wrapper.appendChild(checkbox);
+            wrapper.appendChild(label);
+            upgradesSection.appendChild(wrapper);
+
+            checkbox.addEventListener('change', (e) => chartUpdater(e, option));
+        });
+        
+        legendContainer.appendChild(upgradesSection);
+    }
+
     // After the first load, all subsequent loads will use the stored states
     if (isInitialLoad) {
         isInitialLoad = false;
     }
 }
-
 
 function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalResults, naturalGasResults, recommendedName) {
     const canvas = document.getElementById('costProjectionChart');

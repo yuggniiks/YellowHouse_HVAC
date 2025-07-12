@@ -671,6 +671,152 @@ body {
     height: 100% !important;
 }
 
+/* Add these styles to your style.css for better legend visual grouping */
+
+.chart-legend {
+    flex-basis: 200px;
+    flex-shrink: 0;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    height: fit-content;
+}
+
+.chart-legend h4 {
+    margin: 0 0 15px 0;
+    color: #2c3e50;
+    font-size: 1em;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 5px;
+}
+
+/* Heat pump baseline section - distinct styling */
+.legend-baseline-section {
+    background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+    border: 2px solid #27ae60;
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 15px;
+    position: relative;
+}
+
+.legend-baseline-section::before {
+    content: "📊 Baseline (Select One)";
+    display: block;
+    font-size: 11px;
+    font-weight: bold;
+    color: #27ae60;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Other options section */
+.legend-upgrades-section {
+    background: #fafbfc;
+    border: 1px solid #e1e5e9;
+    border-radius: 6px;
+    padding: 12px;
+    position: relative;
+}
+
+.legend-upgrades-section::before {
+    content: "⚡ Upgrade Options (Toggle Any)";
+    display: block;
+    font-size: 11px;
+    font-weight: bold;
+    color: #6c757d;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Heat pump items get radio button styling */
+.legend-item.baseline-item {
+    margin-bottom: 8px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.7);
+    transition: background-color 0.2s;
+}
+
+.legend-item.baseline-item:hover {
+    background: rgba(255, 255, 255, 0.9);
+}
+
+.legend-item.baseline-item input[type="checkbox"] {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #27ae60;
+    border-radius: 50%; /* Make it round like a radio button */
+    margin-right: 8px;
+    position: relative;
+    cursor: pointer;
+}
+
+.legend-item.baseline-item input[type="checkbox"]:checked {
+    background: #27ae60;
+}
+
+.legend-item.baseline-item input[type="checkbox"]:checked::after {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: white;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* Regular upgrade items keep checkbox styling */
+.legend-item.upgrade-item {
+    margin-bottom: 8px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.legend-item.upgrade-item:hover {
+    background: rgba(108, 117, 125, 0.1);
+}
+
+.legend-item.upgrade-item input[type="checkbox"] {
+    margin-right: 8px;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+}
+
+/* Common label styling */
+.legend-item label {
+    font-size: 12px;
+    color: #333;
+    padding-left: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+    .chart-legend {
+        display: block; /* Override the grid on mobile */
+    }
+    
+    .legend-baseline-section::before,
+    .legend-upgrades-section::before {
+        font-size: 10px;
+    }
+    
+    .legend-item label {
+        font-size: 11px;
+    }
+}
+
 /* Tablet responsive adjustments */
 @media (max-width: 1024px) {
     .chart-wrapper {
