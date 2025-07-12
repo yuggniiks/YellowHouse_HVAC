@@ -483,10 +483,21 @@ function calculateAll() {
                 }
             }
 
-            // Baseline heat pump replacements (credit back to upgrade options)
-            if (year === heatPumpLifespan || year === heatPumpLifespan * 2) {
-                const baselineReplacementCost = bestHeatPump.cost * Math.pow(1 + inflationRate, year - 1);
-                cumulativeNPV += baselineReplacementCost / Math.pow(1 + discountRate, year);
+            // Correctly calculate staggered baseline heat pump replacements (credit back to upgrade options)
+            const downstairsUnitAge = getVal('downstairsUnitAge');
+            const downstairsUnitCost = getVal('downstairsUnitReplacementCost');
+
+            // Replacement credit for the new upstairs unit of the baseline system
+            if (year > 0 && year % heatPumpLifespan === 0) {
+                const upstairsReplacementCost = bestHeatPump.cost * Math.pow(1 + inflationRate, year - 1);
+                cumulativeNPV += upstairsReplacementCost / Math.pow(1 + discountRate, year);
+            }
+
+            // Replacement credit for the existing downstairs unit of the baseline system
+            const downstairsFirstReplacementYear = heatPumpLifespan - downstairsUnitAge;
+            if (year > 0 && (year - downstairsFirstReplacementYear) % heatPumpLifespan === 0 && (year >= downstairsFirstReplacementYear)) {
+                const downstairsReplacementCost = downstairsUnitCost * Math.pow(1 + inflationRate, year - 1);
+                cumulativeNPV += downstairsReplacementCost / Math.pow(1 + discountRate, year);
             }
 
             if ([5, 10, 15, 20].includes(year)) {
@@ -819,9 +830,23 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             // Handle replacement costs
             let replacementCost = 0;
 
-            if (option.type === 'HP' && year > 0 && year % heatPumpLifespan === 0) {
-                replacementCost = option.cost * Math.pow(1 + inflationRate, year);
-            } else if (option.type === 'HYBRID') {
+            if (option.type === 'HP') {
+                const downstairsUnitAge = getVal('downstairsUnitAge');
+                const downstairsUnitCost = getVal('downstairsUnitReplacementCost');
+
+                // Replacement for the NEW upstairs unit (installed at Year 0)
+                if (year > 0 && year % heatPumpLifespan === 0) {
+                    replacementCost += option.cost * Math.pow(1 + inflationRate, year);
+                }
+
+                // Replacement for the EXISTING downstairs unit
+                const downstairsFirstReplacementYear = heatPumpLifespan - downstairsUnitAge;
+                if (year > 0 && (year - downstairsFirstReplacementYear) % heatPumpLifespan === 0 && (year >= downstairsFirstReplacementYear)) {
+                    replacementCost += downstairsUnitCost * Math.pow(1 + inflationRate, year);
+                }
+            }
+            else if (option.type === 'HYBRID') {
+                
                 // Hybrid conversion at heat pump lifespan
                 if (year === heatPumpLifespan) {
                     replacementCost = geoUnitOnlyCost * Math.pow(1 + inflationRate, year);
