@@ -635,3 +635,98 @@ body {
     border-top-right-radius: 7px;
     border-bottom: 1px solid #dee2e6;
 }
+
+/* Add these responsive chart fixes to your style.css */
+
+/* Base chart container improvements */
+.chart-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.chart-legend {
+    flex-basis: 200px;
+    flex-shrink: 0;
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    height: fit-content;
+}
+
+/* Chart wrapper with responsive height */
+.chart-wrapper {
+    position: relative;
+    flex-grow: 1;
+    height: 500px; /* Default desktop height */
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    min-height: 300px; /* Ensure minimum height */
+}
+
+.chart-wrapper canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Tablet responsive adjustments */
+@media (max-width: 1024px) {
+    .chart-wrapper {
+        height: 400px;
+        padding: 15px;
+    }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .chart-container {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .chart-legend {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        flex-basis: auto;
+        margin-bottom: 15px;
+        padding: 10px;
+    }
+    
+    .chart-wrapper {
+        height: 350px; /* Reduced height for mobile */
+        padding: 10px;
+        margin: 0; /* Remove any margins that might cause overflow */
+    }
+    
+    /* Ensure chart doesn't overflow viewport */
+    .chart-wrapper {
+        max-width: 100vw;
+        overflow: hidden;
+    }
+}
+
+/* Small mobile devices */
+@media (max-width: 480px) {
+    .chart-wrapper {
+        height: 300px; /* Even smaller for very small screens */
+        padding: 8px;
+    }
+    
+    .chart-legend {
+        grid-template-columns: 1fr; /* Single column on very small screens */
+        font-size: 12px;
+    }
+    
+    .legend-item label {
+        font-size: 11px;
+    }
+}
+
+/* Landscape orientation on mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+    .chart-wrapper {
+        height: 250px; /* Shorter height in landscape */
+    }
+}

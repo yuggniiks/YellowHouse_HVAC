@@ -686,20 +686,10 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
     if (!canvas) return;
 
     const ctx = canvas.getContext('2d');
-    const chartContainer = canvas.parentElement;
+    const chartContainer = canvas.parentElement; // This should be .chart-wrapper
 
-    if (window.devicePixelRatio > 1) {
-        const canvasRect = chartContainer.getBoundingClientRect();
-        canvas.width = canvasRect.width * window.devicePixelRatio;
-        canvas.height = canvasRect.height * window.devicePixelRatio;
-        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-        canvas.style.width = canvasRect.width + 'px';
-        canvas.style.height = canvasRect.height + 'px';
-    } else {
-        const canvasRect = chartContainer.getBoundingClientRect();
-        canvas.width = canvasRect.width;
-        canvas.height = canvasRect.height;
-    }
+    // Use the responsive canvas setup - REMOVE the old canvas sizing code after this
+    const { width: containerWidth, height: containerHeight } = setupResponsiveCanvas(canvas, chartContainer);
 
     const inflationRate = getVal('inflationRate') / 100;
     const years = 30;
@@ -744,8 +734,8 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             uniqueId: `option-${index}`,
             color: option.type === 'HP' ? 'hsl(' + (210 + (heatPumpResults.indexOf(option) * 30)) + ', 70%, 50%)' :
                 option.type === 'HYBRID' ? 'hsl(' + (270 + (hybridResults.indexOf(option) * 30)) + ', 70%, 50%)' :
-                option.type === 'GAS' ? 'hsl(' + (40 + (naturalGasResults.indexOf(option) * 20)) + ', 90%, 55%)' : // Gas Color
-                'hsl(' + (120 + (geothermalResults.indexOf(option) * 40)) + ', 70%, 45%)' // Geo Color
+                option.type === 'GAS' ? 'hsl(' + (40 + (naturalGasResults.indexOf(option) * 20)) + ', 90%, 55%)' :
+                'hsl(' + (120 + (geothermalResults.indexOf(option) * 40)) + ', 70%, 45%)'
         });
     });
 
@@ -765,16 +755,14 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
     
     const handleLegendToggle = (event, toggledOption) => {
         const checkbox = event.target;
-        // Store the state of the checkbox that was just changed
         userCheckboxStates[toggledOption.name] = checkbox.checked;
 
         if (toggledOption.type === 'HP') {
             if (!checkbox.checked) {
                 checkbox.checked = true;
-                userCheckboxStates[toggledOption.name] = true; // Re-store correct state
+                userCheckboxStates[toggledOption.name] = true;
                 return;
             }
-            // Uncheck all other HP options and store their new state
             projectionData.forEach(opt => {
                 if (opt.type === 'HP' && opt.name !== toggledOption.name) {
                     userCheckboxStates[opt.name] = false;
@@ -795,7 +783,7 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             ctx.fillStyle = '#666';
             ctx.font = '16px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('Add vendor options to see cost projection', chartContainer.clientWidth / 2, chartContainer.clientHeight / 2);
+            ctx.fillText('Add vendor options to see cost projection', containerWidth / 2, containerHeight / 2);
             return;
         }
 
@@ -809,11 +797,12 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         const maxCost = Math.max(...visibleOptions.flatMap(p => p.data.map(d => d.cost)));
         const maxYear = years;
         const margin = { top: 40, right: 30, bottom: 80, left: 70 };
-        const chartWidth = chartContainer.clientWidth - margin.left - margin.right;
-        const chartHeight = chartContainer.clientHeight - margin.top - margin.bottom;
+        const chartWidth = containerWidth - margin.left - margin.right;
+        const chartHeight = containerHeight - margin.top - margin.bottom;
         const xScale = (year) => margin.left + (year / maxYear) * chartWidth;
         const yScale = (cost) => margin.top + chartHeight - (cost / maxCost) * chartHeight;
         
+        // Light grid lines
         ctx.lineWidth = 0.5;
         ctx.strokeStyle = '#f0f0f0';
         for (let year = 1; year <= maxYear; year++) {
@@ -833,6 +822,7 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             ctx.stroke();
         }
 
+        // Major grid lines
         const costStep = Math.ceil(maxCost / 8 / 10000) * 10000;
         ctx.strokeStyle = '#e0e0e0';
         for (let year = 5; year <= maxYear; year += 5) {
@@ -842,7 +832,7 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             ctx.lineTo(x, margin.top + chartHeight);
             ctx.stroke();
         }
-        for (let cost = costStep; cost < maxCost; cost += costStep) {
+        for (let cost = costStep; cost <= maxCost; cost += costStep) {
             const y = yScale(cost);
             ctx.beginPath();
             ctx.moveTo(margin.left, y);
@@ -850,6 +840,7 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             ctx.stroke();
         }
 
+        // Chart borders
         ctx.strokeStyle = '#333';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -861,6 +852,7 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         ctx.lineTo(margin.left, margin.top + chartHeight);
         ctx.stroke();
         
+        // Minor tick marks
         ctx.strokeStyle = '#aaa'; 
         ctx.lineWidth = 1;
         for (let year = 0; year <= maxYear; year++) {
@@ -873,6 +865,7 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             }
         }
 
+        // Labels
         ctx.fillStyle = '#333';
         ctx.font = '11px Segoe UI';
         ctx.textAlign = 'center';
@@ -886,7 +879,7 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         }
         ctx.font = '12px Segoe UI';
         ctx.textAlign = 'center';
-        ctx.fillText('Years', margin.left + chartWidth / 2, chartContainer.clientHeight - 45);
+        ctx.fillText('Years', margin.left + chartWidth / 2, containerHeight - 45);
         ctx.save();
         ctx.translate(30, margin.top + chartHeight / 2);
         ctx.rotate(-Math.PI / 2);
@@ -896,6 +889,7 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
         ctx.textAlign = 'center';
         ctx.fillText('30-Year Total Cost Projection (Including Replacements & Inflation)', margin.left + chartWidth / 2, 25);
 
+        // Draw data lines
         visibleOptions.forEach((option) => {
             ctx.strokeStyle = option.color;
             ctx.lineWidth = option.type === 'GEO' ? 2.5 : option.type === 'HYBRID' ? 2 : 1.5;
@@ -917,6 +911,7 @@ function generateCostProjectionChart(heatPumpResults, hybridResults, geothermalR
             ctx.setLineDash([]);
         });
 
+        // Draw break-even lines
         if (bestHeatPumpData) {
             visibleOptions.forEach(option => {
                 if (option.type !== 'HP') {
@@ -1173,9 +1168,48 @@ function exportData() {
         showStatus('Analysis data exported successfully!');
 }
 
+function setupResponsiveCanvas(canvas, container) {
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    
+    // Get the container's actual size
+    const rect = container.getBoundingClientRect();
+    const containerWidth = rect.width;
+    const containerHeight = rect.height;
+    
+    // Set the canvas size in CSS pixels
+    canvas.style.width = containerWidth + 'px';
+    canvas.style.height = containerHeight + 'px';
+    
+    // Set the canvas size in actual pixels (accounting for device pixel ratio)
+    canvas.width = containerWidth * dpr;
+    canvas.height = containerHeight * dpr;
+    
+    // Scale the canvas for high DPI displays
+    ctx.scale(dpr, dpr);
+    
+    return { width: containerWidth, height: containerHeight };
+}
+
 window.onload = function() {
     setTimeout(() => {
         loadExampleData();
         calculateAll();
     }, 200);
 };
+
+// Also add a window resize handler to redraw the chart when orientation changes
+window.addEventListener('resize', function() {
+    // Debounce the resize event
+    clearTimeout(window.resizeTimeout);
+    window.resizeTimeout = setTimeout(function() {
+        calculateAll(); // This will regenerate the chart
+    }, 250);
+});
+
+// Add orientation change handler for mobile devices
+window.addEventListener('orientationchange', function() {
+    setTimeout(function() {
+        calculateAll(); // Redraw chart after orientation change
+    }, 500); // Wait a bit for the orientation change to complete
+});
