@@ -436,6 +436,21 @@ body {
     }
 }
 
+@media (max-width: 1280px) {
+    .chart-container {
+        flex-direction: column;
+    }
+
+    /* This rule is updated to center the toggle groups */
+    .chart-legend {
+        display: flex;
+        flex-direction: row;
+        align-items: wrap; /* This horizontally centers the groups */
+        gap: 15px; /* This adds a nice space between the two groups */
+        margin-bottom: 15px;
+    }
+}
+
 .chart-container {
     display: flex;
     gap: 20px;
@@ -518,17 +533,6 @@ body {
 }
 
 @media (max-width: 768px) {
-    .chart-container {
-        flex-direction: column;
-    }
-
-    .chart-legend {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        flex-basis: auto;
-        margin-bottom: 15px;
-    }
-    
     .results-table,
     .results-table tbody,
     .results-table tr,
