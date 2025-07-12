@@ -6,7 +6,7 @@ A browser-based tool to financially compare Heat Pump, Hybrid Geothermal, and Fu
 
 **Interactive Graph with Toggles and Payback Line**
 
-![image](https://github.com/user-attachments/assets/f9403c57-4104-4e23-9b14-44f504f475f5)
+<img width="1137" height="624" alt="image" src="https://github.com/user-attachments/assets/891866f9-77fa-4ea8-b13f-f0f456b8a883" />
 
 ## 🤔 Why Use This Tool?
 
