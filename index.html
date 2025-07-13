@@ -293,6 +293,11 @@
                 <div style="margin-bottom: 15px; background: #e8f5e8; padding: 15px; border-radius: 6px; color: #2d5f2d;">
                     <strong>Baseline Comparison:</strong> All options replace only the broken upstairs unit and keep your good 2022 downstairs unit. The baseline is selected from the chart legend below.
                 </div>
+                <div class="formula-box">
+                    <p><strong>Annual Energy Cost:</strong> <code>(Old Cost / Efficiency Factor) + Weather Penalties</code></p>
+                    <p><strong>Annual Total Cost:</strong> <code>Annual Energy Cost + Annual Maintenance</code></p>
+                    <p><strong>Annual Savings:</strong> <code>(Old Cost + Broken Penalty) - Annual Total Cost</code></p>
+                </div>
                 <table class="results-table baseline-table" id="baselineTable">
                     <thead>
                         <tr>
@@ -314,6 +319,13 @@
                     <strong>Hybrid Strategy:</strong> Install ground loops for whole house efficiency + replace upstairs unit only.<br>
                     <strong>Future Ready:</strong> Downstairs unit can connect to existing loops when ready for replacement.
                 </div>
+                <div class="formula-box">
+                    <p><strong>Extra Investment:</strong> <code>Hybrid Cost - Baseline Cost</code></p>
+                    <p><strong>Tax Credit:</strong> <code>Hybrid Cost * Tax Credit %</code></p>
+                    <p><strong>Net Extra Cost:</strong> <code>(Hybrid Cost - Tax Credit) - Baseline Cost</code></p>
+                    <p><strong>Extra Annual Savings:</strong> <code>Baseline Annual Cost - Hybrid Annual Cost</code></p>
+                    <p><strong>Simple Payback:</strong> <code>Net Extra Cost / Extra Annual Savings</code></p>
+                </div>
                 <table class="results-table hybrid-table" id="hybridTable">
                     <thead>
                         <tr>
@@ -333,6 +345,13 @@
                 <h2>⚡ Step 3: Full Geothermal Analysis</h2>
                 <div class="incremental-highlight">
                     <strong>Complete System:</strong> Compares full geothermal replacement against your best baseline choice.
+                </div>
+                <div class="formula-box">
+                    <p><strong>Extra Investment:</strong> <code>Geo Cost - Baseline Cost</code></p>
+                    <p><strong>Tax Credit:</strong> <code>Geo Cost * Tax Credit %</code></p>
+                    <p><strong>Net Extra Cost:</strong> <code>(Geo Cost - Tax Credit) - Baseline Cost</code></p>
+                    <p><strong>Extra Annual Savings:</strong> <code>Baseline Annual Cost - Geo Annual Cost</code></p>
+                    <p><strong>Simple Payback:</strong> <code>Net Extra Cost / Extra Annual Savings</code></p>
                 </div>
                 <table class="results-table upgrade-table" id="upgradeTable">
                     <thead>
@@ -354,6 +373,13 @@
                 <div class="incremental-highlight" style="border-left-color: #f39c12; background-color: #fff8e1;">
                     <strong>Conventional Alternative:</strong> Compares a gas furnace system against your best heat pump baseline.
                 </div>
+                 <div class="formula-box">
+                    <p><strong>Extra Investment:</strong> <code>Gas/AC Cost - Baseline Cost</code></p>
+                    <p><strong>Tax Credit:</strong> <code>$0 (Not Applicable)</code></p>
+                    <p><strong>Net Extra Cost:</strong> <code>Gas/AC Cost - Baseline Cost</code></p>
+                    <p><strong>Extra Annual Savings:</strong> <code>Baseline Annual Cost - Gas/AC Annual Cost</code></p>
+                    <p><strong>Simple Payback:</strong> <code>Net Extra Cost / Extra Annual Savings</code></p>
+                </div>
                 <table class="results-table" id="naturalGasTable">
                     <thead>
                         <tr>
@@ -374,6 +400,10 @@
                 <div style="margin-bottom: 15px; color: #666; font-size: 14px;">
                     <strong>Incremental NPV:</strong> Shows the value of choosing each option over the best heat pump baseline.
                     Green = upgrade pays off, Red = baseline is better value.
+                </div>
+                <div class="formula-box">
+                    <p><strong>NPV Formula:</strong> <code>Σ [ (Future Savings in Year t) / (1 + Discount Rate)^t ] - Net Extra Investment</code></p>
+                    <p><em>This calculation also accounts for inflation and the future costs of replacing equipment over 30 years.</em></p>
                 </div>
                 <table class="results-table" id="npvTable">
                     <thead>
@@ -443,6 +473,7 @@
             </div>
         </div>
     </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="script.js" defer></script>    
 </body>
 </html>
